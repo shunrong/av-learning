@@ -19,8 +19,8 @@ export class BeautyFilterManager extends EventEmitter {
     // 美颜参数
     this.isEnabled = false;
     this.settings = {
-      smoothing: 3,      // 磨皮强度 (0-10)
-      brightness: 10,    // 美白强度 (0-30)
+      smoothing: 5,      // 磨皮强度 (0-10)
+      brightness: 15,    // 美白强度 (0-30)
       saturation: 5      // 红润强度 (0-20)
     };
     
