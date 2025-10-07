@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { SignalingClient } from './SignalingClient.js';
 import { MediaManager } from './MediaManager.js';
 import { PeerConnectionManager } from './PeerConnectionManager.js';
+import { ChatManager } from './ChatManager.js';
 
 export class RoomClient extends EventEmitter {
   constructor(signalingUrl) {
@@ -17,6 +18,10 @@ export class RoomClient extends EventEmitter {
     this.signaling = new SignalingClient(signalingUrl);
     this.mediaManager = new MediaManager();
     this.pcManager = new PeerConnectionManager();
+    this.chatManager = new ChatManager();
+    
+    // 将 ChatManager 注入到 PCManager
+    this.pcManager.setChatManager(this.chatManager);
     
     // 房间状态
     this.roomId = null;
@@ -54,6 +59,9 @@ export class RoomClient extends EventEmitter {
       this.users.set(data.userId, data);
       this.emit('user-joined', data);
       
+      // 发送系统消息
+      this.chatManager.sendSystemMessage(`${data.userName} 加入了会议`, 'user-join');
+      
       // 主动向新用户发起连接
       await this._initiateConnectionTo(data.userId);
     });
@@ -62,6 +70,10 @@ export class RoomClient extends EventEmitter {
       logger.info('用户离开:', data);
       this.users.delete(data.userId);
       this.pcManager.closePeerConnection(data.userId);
+      
+      // 发送系统消息
+      this.chatManager.sendSystemMessage(`${data.userName} 离开了会议`, 'user-leave');
+      
       this.emit('user-left', data);
     });
 
@@ -106,6 +118,27 @@ export class RoomClient extends EventEmitter {
 
     this.mediaManager.on('video-toggled', (enabled) => {
       this.emit('video-toggled', enabled);
+    });
+
+    // === 聊天管理事件 ===
+    this.chatManager.on('channel-open', (data) => {
+      logger.info('[RoomClient] DataChannel 打开:', data.userName);
+      this.emit('chat-channel-open', data);
+    });
+
+    this.chatManager.on('message', (message) => {
+      logger.debug('[RoomClient] 收到聊天消息:', message);
+      this.emit('chat-message', message);
+    });
+
+    this.chatManager.on('channel-close', (data) => {
+      logger.info('[RoomClient] DataChannel 关闭:', data.userName);
+      this.emit('chat-channel-close', data);
+    });
+
+    this.chatManager.on('error', (data) => {
+      logger.error('[RoomClient] ChatManager 错误:', data);
+      this.emit('chat-error', data);
     });
   }
 
@@ -155,19 +188,23 @@ export class RoomClient extends EventEmitter {
    */
   async _initiateConnectionTo(userId) {
     try {
-      logger.info(`向用户 ${userId} 发起连接`);
+      const user = this.users.get(userId);
+      const userName = user ? user.userName : userId;
       
-      // 1. 创建 PeerConnection
+      logger.info(`向用户 ${userName}(${userId}) 发起连接`);
+      
+      // 1. 创建 PeerConnection（发起方创建 DataChannel）
       const pc = this.pcManager.createPeerConnection(
         userId,
-        this.mediaManager.localStream
+        this.mediaManager.localStream,
+        { createDataChannel: true, userName }
       );
       
       // 2. 创建并发送 Offer
       const offer = await this.pcManager.createOffer(userId);
       this.signaling.sendOffer(userId, offer);
       
-      logger.info(`Offer 已发送给 ${userId}`);
+      logger.info(`Offer 已发送给 ${userName}(${userId})`);
     } catch (error) {
       logger.error(`向 ${userId} 发起连接失败:`, error);
       throw error;
@@ -181,12 +218,17 @@ export class RoomClient extends EventEmitter {
     const { userId, offer } = data;
     
     try {
+      const user = this.users.get(userId);
+      const userName = user ? user.userName : userId;
+      
       // 1. 创建 PeerConnection（如果还不存在）
       let pc = this.pcManager.peerConnections.get(userId);
       if (!pc) {
+        // 接收方不创建 DataChannel，等待对方创建
         pc = this.pcManager.createPeerConnection(
           userId,
-          this.mediaManager.localStream
+          this.mediaManager.localStream,
+          { createDataChannel: false, userName }
         );
       }
       
@@ -197,7 +239,7 @@ export class RoomClient extends EventEmitter {
       const answer = await this.pcManager.createAnswer(userId);
       this.signaling.sendAnswer(userId, answer);
       
-      logger.info(`Answer 已发送给 ${userId}`);
+      logger.info(`Answer 已发送给 ${userName}(${userId})`);
     } catch (error) {
       logger.error(`处理 Offer 失败 from ${userId}:`, error);
     }
@@ -255,6 +297,34 @@ export class RoomClient extends EventEmitter {
   }
 
   /**
+   * 发送聊天消息
+   * @param {string} text - 消息内容
+   */
+  sendChatMessage(text) {
+    if (!this.userName) {
+      logger.warn('[RoomClient] 未加入房间，无法发送消息');
+      return;
+    }
+    this.chatManager.sendMessage(text, this.userName);
+  }
+
+  /**
+   * 获取聊天消息历史
+   * @returns {Array} 消息列表
+   */
+  getChatMessages() {
+    return this.chatManager.getMessages();
+  }
+
+  /**
+   * 获取聊天连接状态
+   * @returns {Object} 状态信息
+   */
+  getChatStatus() {
+    return this.chatManager.getStatus();
+  }
+
+  /**
    * 获取房间内的用户列表
    */
   getRoomUsers() {
@@ -276,6 +346,7 @@ export class RoomClient extends EventEmitter {
     this.signaling.disconnect();
     this.pcManager.dispose();
     this.mediaManager.dispose();
+    this.chatManager.dispose();
     this.removeAllListeners();
     logger.info('RoomClient 已清理');
   }

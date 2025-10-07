@@ -12,18 +12,35 @@ export class PeerConnectionManager extends EventEmitter {
     this.config = { iceServers };
     this.peerConnections = new Map(); // Map<userId, RTCPeerConnection>
     this.pendingCandidates = new Map(); // Map<userId, ICECandidate[]>
+    this.chatManager = null; // ChatManager 实例
+  }
+
+  /**
+   * 设置 ChatManager 实例
+   * @param {ChatManager} chatManager - 聊天管理器实例
+   */
+  setChatManager(chatManager) {
+    this.chatManager = chatManager;
+    logger.info('[PCManager] 设置 ChatManager');
   }
 
   /**
    * 为指定用户创建 PeerConnection
+   * @param {string} userId - 用户ID
+   * @param {MediaStream} localStream - 本地媒体流
+   * @param {Object} options - 选项
+   * @param {boolean} options.createDataChannel - 是否创建 DataChannel (发起方为 true)
+   * @param {string} options.userName - 用户名
    */
-  createPeerConnection(userId, localStream) {
+  createPeerConnection(userId, localStream, options = {}) {
+    const { createDataChannel = false, userName = userId } = options;
+    
     if (this.peerConnections.has(userId)) {
       logger.warn(`PeerConnection for ${userId} 已存在`);
       return this.peerConnections.get(userId);
     }
 
-    logger.info(`创建 PeerConnection for ${userId}`);
+    logger.info(`创建 PeerConnection for ${userName}(${userId})`);
     
     const pc = new RTCPeerConnection(this.config);
 
@@ -78,7 +95,15 @@ export class PeerConnectionManager extends EventEmitter {
       });
     };
 
+    // 存储 PeerConnection
     this.peerConnections.set(userId, pc);
+    
+    // 创建 DataChannel (如果已设置 ChatManager)
+    if (this.chatManager) {
+      this.chatManager.createDataChannel(userId, userName, pc, createDataChannel);
+      logger.debug(`[PCManager] DataChannel 创建请求已发送 for ${userName}`);
+    }
+    
     return pc;
   }
 
@@ -188,6 +213,11 @@ export class PeerConnectionManager extends EventEmitter {
   closePeerConnection(userId) {
     const pc = this.peerConnections.get(userId);
     if (pc) {
+      // 关闭 DataChannel
+      if (this.chatManager) {
+        this.chatManager.closeChannel(userId);
+      }
+      
       pc.close();
       this.peerConnections.delete(userId);
       this.pendingCandidates.delete(userId);
@@ -200,6 +230,12 @@ export class PeerConnectionManager extends EventEmitter {
    */
   closeAllConnections() {
     logger.info('关闭所有 PeerConnection');
+    
+    // 关闭所有 DataChannel
+    if (this.chatManager) {
+      this.chatManager.closeAllChannels();
+    }
+    
     this.peerConnections.forEach((pc, userId) => {
       pc.close();
       logger.debug(`关闭 PeerConnection for ${userId}`);

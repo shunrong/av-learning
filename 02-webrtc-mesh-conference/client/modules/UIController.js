@@ -9,6 +9,7 @@ export class UIController {
   constructor() {
     this.elements = {};
     this.remoteVideos = new Map(); // Map<userId, videoElement>
+    this.isChatCollapsed = false; // 聊天面板折叠状态
   }
 
   /**
@@ -35,8 +36,18 @@ export class UIController {
       // 信息显示
       roomInfo: document.getElementById('room-info'),
       userList: document.getElementById('user-list'),
-      connectionStatus: document.getElementById('connection-status')
+      connectionStatus: document.getElementById('connection-status'),
+      
+      // 聊天相关
+      chatPanel: document.getElementById('chat-panel'),
+      chatMessages: document.getElementById('chat-messages'),
+      chatInput: document.getElementById('chat-input'),
+      sendMessageBtn: document.getElementById('send-message'),
+      toggleChatBtn: document.getElementById('toggle-chat')
     };
+
+    // 绑定聊天事件
+    this._setupChatEvents();
 
     logger.debug('UI元素初始化完成');
   }
@@ -209,6 +220,128 @@ export class UIController {
     // 可以改为更优雅的提示方式
     console.log('提示:', message);
   }
+
+  // ========== 聊天相关方法 ==========
+
+  /**
+   * 设置聊天事件监听
+   * @private
+   */
+  _setupChatEvents() {
+    // 折叠/展开聊天面板
+    if (this.elements.toggleChatBtn) {
+      this.elements.toggleChatBtn.onclick = () => this.toggleChat();
+    }
+
+    // 回车发送消息
+    if (this.elements.chatInput) {
+      this.elements.chatInput.onkeypress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.onSendMessage && this.onSendMessage();
+        }
+      };
+    }
+  }
+
+  /**
+   * 切换聊天面板
+   */
+  toggleChat() {
+    this.isChatCollapsed = !this.isChatCollapsed;
+    this.elements.chatPanel.classList.toggle('collapsed', this.isChatCollapsed);
+    
+    // 清除未读标记
+    if (!this.isChatCollapsed) {
+      this.elements.chatPanel.classList.remove('has-unread');
+    }
+  }
+
+  /**
+   * 添加聊天消息
+   * @param {Object} message - 消息对象
+   */
+  addChatMessage(message) {
+    const { userId, userName, text, timestamp, type, isRemote } = message;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type === 'system' ? 'system' : (isRemote ? 'remote' : 'self')}`;
+
+    if (type === 'system') {
+      // 系统消息
+      messageDiv.innerHTML = `
+        <div class="message-content">${text}</div>
+      `;
+    } else {
+      // 用户消息
+      const time = new Date(timestamp).toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      messageDiv.innerHTML = `
+        <div class="message-header">
+          <span class="message-sender">${userName}</span>
+          <span class="message-time">${time}</span>
+        </div>
+        <div class="message-content">${this._escapeHtml(text)}</div>
+      `;
+    }
+
+    this.elements.chatMessages.appendChild(messageDiv);
+    
+    // 滚动到底部
+    this._scrollChatToBottom();
+    
+    // 如果面板是折叠的，显示未读标记
+    if (this.isChatCollapsed && isRemote) {
+      this.elements.chatPanel.classList.add('has-unread');
+    }
+  }
+
+  /**
+   * 获取聊天输入内容
+   */
+  getChatInput() {
+    return this.elements.chatInput.value.trim();
+  }
+
+  /**
+   * 清空聊天输入框
+   */
+  clearChatInput() {
+    this.elements.chatInput.value = '';
+  }
+
+  /**
+   * 清空聊天消息
+   */
+  clearChatMessages() {
+    this.elements.chatMessages.innerHTML = '';
+  }
+
+  /**
+   * 滚动聊天到底部
+   * @private
+   */
+  _scrollChatToBottom() {
+    const container = this.elements.chatMessages;
+    setTimeout(() => {
+      container.scrollTop = container.scrollHeight;
+    }, 100);
+  }
+
+  /**
+   * HTML 转义（防止 XSS）
+   * @private
+   */
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ========== 清理方法 ==========
 
   /**
    * 清理所有远程视频

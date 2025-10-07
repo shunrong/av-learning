@@ -74,6 +74,28 @@
       <h3>参会人员</h3>
       <ul id="user-list"></ul>
     </div>
+
+    <!-- 聊天面板 - 右下角浮动 -->
+    <div id="chat-panel" class="chat-panel">
+      <div class="chat-header">
+        <span>💬 聊天</span>
+        <button id="toggle-chat" class="btn-icon" title="展开/收起">▼</button>
+      </div>
+      <div class="chat-body">
+        <div id="chat-messages" class="chat-messages">
+          <!-- 聊天消息会动态添加到这里 -->
+        </div>
+        <div class="chat-input-container">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="输入消息..." 
+            maxlength="500"
+          />
+          <button id="send-message" class="btn btn-primary">发送</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- 模块化脚本 -->

@@ -46,12 +46,18 @@ class ConferenceApp {
     // 切换视频
     this.ui.elements.toggleVideoBtn.onclick = () => this._handleToggleVideo();
     
+    // 发送聊天消息
+    this.ui.elements.sendMessageBtn.onclick = () => this._handleSendMessage();
+    
     // 回车键加入房间
     this.ui.elements.userNameInput.onkeypress = (e) => {
       if (e.key === 'Enter') {
         this._handleJoinRoom();
       }
     };
+    
+    // 设置UI的发送消息回调
+    this.ui.onSendMessage = () => this._handleSendMessage();
   }
 
   /**
@@ -148,6 +154,20 @@ class ConferenceApp {
     this.roomClient.on('video-toggled', (enabled) => {
       this.ui.updateVideoButton(enabled);
     });
+
+    // 聊天消息
+    this.roomClient.on('chat-message', (message) => {
+      this.ui.addChatMessage(message);
+      logger.debug('收到聊天消息:', message);
+    });
+
+    this.roomClient.on('chat-channel-open', (data) => {
+      logger.info('DataChannel 已打开:', data.userName);
+    });
+
+    this.roomClient.on('chat-channel-close', (data) => {
+      logger.info('DataChannel 已关闭:', data.userName);
+    });
   }
 
   /**
@@ -212,6 +232,27 @@ class ConferenceApp {
   _handleToggleVideo() {
     if (!this.roomClient) return;
     this.roomClient.toggleVideo();
+  }
+
+  /**
+   * 处理发送聊天消息
+   */
+  _handleSendMessage() {
+    if (!this.roomClient) return;
+    
+    const text = this.ui.getChatInput();
+    if (!text) {
+      logger.warn('消息内容为空');
+      return;
+    }
+    
+    // 发送消息
+    this.roomClient.sendChatMessage(text);
+    
+    // 清空输入框
+    this.ui.clearChatInput();
+    
+    logger.debug('发送聊天消息:', text);
   }
 }
 
