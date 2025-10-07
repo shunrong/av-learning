@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      video {
+        display: block;
+        margin: 30px auto;
+      }
+
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <audio id="audio"width="640" height="480"  autoplay></audio>
+    <div class="button-container">
+      <button id="startButton">打开摄像头</button>
+      <button id="stopButton">关闭摄像头</button>
+    </div>
+ 
+    <script type="module">
+      const video = document.getElementById("video");
+      const startButton = document.getElementById("startButton");
+      const stopButton = document.getElementById("stopButton");
+
+      startButton.addEventListener("click", async() => {
+       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+       video.srcObject = stream;
+      });
+
+      // 关闭摄像头
+      stopButton.addEventListener("click", () => {
+        const tracks = video.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+      });
+    </script>
+  </body>
+</html>

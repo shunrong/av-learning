@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebRTC 1v1 视频通话</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+
+    .status {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+
+    .status-label {
+      font-weight: 600;
+      color: #555;
+    }
+
+    .status-value {
+      color: #667eea;
+      font-weight: 500;
+    }
+
+    .status-value.connected {
+      color: #10b981;
+    }
+
+    .status-value.disconnected {
+      color: #ef4444;
+    }
+
+    /* 来电通知 */
+    .incoming-call {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      z-index: 1000;
+      animation: shake 0.5s infinite;
+    }
+
+    .incoming-call.show {
+      display: block;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+      25% { transform: translate(-50%, -50%) rotate(-2deg); }
+      75% { transform: translate(-50%, -50%) rotate(2deg); }
+    }
+
+    .incoming-call h2 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .incoming-call p {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 18px;
+    }
+
+    .call-actions {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .accept-btn {
+      background: #10b981;
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 50px;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .accept-btn:hover {
+      background: #059669;
+      transform: scale(1.05);
+    }
+
+    .reject-btn {
+      background: #ef4444;
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 50px;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .reject-btn:hover {
+      background: #dc2626;
+      transform: scale(1.05);
+    }
+
+    .video-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .video-wrapper {
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+      min-height: 300px;
+    }
+
+    .video-label {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+      min-height: 300px;
+      object-fit: cover;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .main-controls {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    #callBtn {
+      background: #10b981;
+      color: white;
+      font-size: 18px;
+      padding: 15px 50px;
+    }
+
+    #hangupBtn {
+      background: #ef4444;
+      color: white;
+      font-size: 18px;
+      padding: 15px 50px;
+    }
+
+    #toggleVideo {
+      background: #10b981;
+      color: white;
+    }
+
+    #toggleVideo.off {
+      background: #ef4444;
+    }
+
+    #toggleAudio {
+      background: #3b82f6;
+      color: white;
+    }
+
+    #toggleAudio.off {
+      background: #ef4444;
+    }
+
+    .waiting {
+      text-align: center;
+      color: white;
+      font-size: 18px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .log {
+      background: rgba(0, 0, 0, 0.8);
+      color: #10b981;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      margin: 5px 0;
+    }
+
+    @media (max-width: 768px) {
+      .video-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .main-controls {
+        flex-direction: column;
+      }
+      
+      #callBtn, #hangupBtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎥 WebRTC 1v1 视频通话</h1>
+
+    <div class="status">
+      <div class="status-item">
+        <span class="status-label">通话状态:</span>
+        <span class="status-value disconnected" id="callStatus">空闲</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">我的ID:</span>
+        <span class="status-value" id="clientId">-</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">信令服务器:</span>
+        <span class="status-value disconnected" id="wsStatus">未连接</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">在线人数:</span>
+        <span class="status-value" id="userCount">0</span>
+      </div>
+    </div>
+
+    <!-- 来电通知 -->
+    <div class="incoming-call" id="incomingCall">
+      <h2>📞 来电</h2>
+      <p id="callerInfo">对方正在呼叫...</p>
+      <audio id="ringtone" loop>
+        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+      </audio>
+      <div class="call-actions">
+        <button class="accept-btn" id="acceptBtn">✓ 接听</button>
+        <button class="reject-btn" id="rejectBtn">✗ 拒绝</button>
+      </div>
+    </div>
+
+    <!-- 主控制按钮 -->
+    <div class="main-controls">
+      <button id="callBtn">📞 拨打电话</button>
+      <button id="hangupBtn" style="display: none;">☎️ 挂断</button>
+    </div>
+
+    <!-- 视频区域 -->
+    <div class="video-container" id="videoContainer" style="display: none;">
+      <div class="video-wrapper">
+        <div class="video-label">📹 我的视频</div>
+        <video id="localVideo" autoplay muted playsinline></video>
+      </div>
+      <div class="video-wrapper">
+        <div class="video-label">📹 对方视频</div>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </div>
+
+    <!-- 媒体控制按钮 -->
+    <div class="controls" id="mediaControls" style="display: none;">
+      <button id="toggleVideo">📹 关闭摄像头</button>
+      <button id="toggleAudio">🎤 静音</button>
+    </div>
+
+    <div class="waiting" id="waiting"></div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    // ========== 全局变量 ==========
+    let ws;                          // WebSocket 连接
+    let pc;                          // RTCPeerConnection
+    let localStream;                 // 本地媒体流
+    let clientId;                    // 客户端ID
+    let callState = 'idle';          // idle | calling | ringing | connected
+
+    // DOM 元素
+    const callBtn = document.getElementById('callBtn');
+    const hangupBtn = document.getElementById('hangupBtn');
+    const incomingCallEl = document.getElementById('incomingCall');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    const ringtone = document.getElementById('ringtone');
+    const videoContainer = document.getElementById('videoContainer');
+    const mediaControls = document.getElementById('mediaControls');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const callStatusEl = document.getElementById('callStatus');
+    const clientIdEl = document.getElementById('clientId');
+    const wsStatusEl = document.getElementById('wsStatus');
+    const userCountEl = document.getElementById('userCount');
+    const waitingEl = document.getElementById('waiting');
+    const logEl = document.getElementById('log');
+    const toggleVideoBtn = document.getElementById('toggleVideo');
+    const toggleAudioBtn = document.getElementById('toggleAudio');
+
+    // ========== 页面加载时连接信令服务器 ==========
+    window.onload = () => {
+      log('页面已加载，等待拨打电话');
+      connectSignaling();
+    };
+
+    // ========== 拨打电话 ==========
+    callBtn.onclick = async () => {
+      try {
+        log('=== 发起呼叫 ===');
+        callBtn.disabled = true;
+        
+        // 检查是否有对方在线
+        const userCount = parseInt(userCountEl.textContent);
+        if (userCount < 2) {
+          alert('对方不在线，无法拨打');
+          callBtn.disabled = false;
+          return;
+        }
+
+        // 1. 先获取本地媒体流
+        log('正在获取摄像头和麦克风权限...');
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720 },
+          audio: true
+        });
+        
+        localVideo.srcObject = localStream;
+        log('✓ 本地媒体流获取成功');
+
+        // 2. 显示视频区域
+        videoContainer.style.display = 'grid';
+        mediaControls.style.display = 'flex';
+        callBtn.style.display = 'none';
+        hangupBtn.style.display = 'block';
+
+        // 3. 发送呼叫请求
+        callState = 'calling';
+        updateStatus('callStatus', '呼叫中...', false);
+        
+        ws.send(JSON.stringify({
+          type: 'call-request',
+          from: clientId
+        }));
+        
+        log('✓ 呼叫请求已发送，等待对方接听...');
+        waitingEl.style.display = 'block';
+        waitingEl.textContent = '等待对方接听...';
+
+      } catch (error) {
+        log('✗ 错误: ' + error.message, 'error');
+        alert('无法访问摄像头或麦克风，请检查权限设置');
+        callBtn.disabled = false;
+        resetToIdle();
+      }
+    };
+
+    // ========== 接听电话 ==========
+    acceptBtn.onclick = async () => {
+      try {
+        log('=== 接听电话 ===');
+        
+        // 1. 停止铃声
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        
+        // 2. 隐藏来电通知
+        incomingCallEl.classList.remove('show');
+        
+        // 3. 获取本地媒体流
+        log('正在获取摄像头和麦克风权限...');
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720 },
+          audio: true
+        });
+        
+        localVideo.srcObject = localStream;
+        log('✓ 本地媒体流获取成功');
+
+        // 4. 显示视频区域
+        videoContainer.style.display = 'grid';
+        mediaControls.style.display = 'flex';
+        callBtn.style.display = 'none';
+        hangupBtn.style.display = 'block';
+
+        // 5. 通知对方接听
+        ws.send(JSON.stringify({
+          type: 'call-accepted',
+          from: clientId
+        }));
+        
+        log('✓ 已接听，通知对方...');
+        callState = 'connected';
+        updateStatus('callStatus', '通话中', true);
+
+        // 6. 创建连接
+        await createPeerConnection();
+        // 被叫方创建 offer
+        await createOffer();
+
+      } catch (error) {
+        log('✗ 错误: ' + error.message, 'error');
+        alert('无法访问摄像头或麦克风');
+        rejectCall();
+      }
+    };
+
+    // ========== 拒绝电话 ==========
+    rejectBtn.onclick = () => {
+      log('=== 拒绝来电 ===');
+      rejectCall();
+    };
+
+    function rejectCall() {
+      // 停止铃声
+      ringtone.pause();
+      ringtone.currentTime = 0;
+      
+      // 隐藏来电通知
+      incomingCallEl.classList.remove('show');
+      
+      // 通知对方被拒绝
+      ws.send(JSON.stringify({
+        type: 'call-rejected',
+        from: clientId
+      }));
+      
+      callState = 'idle';
+      updateStatus('callStatus', '空闲', false);
+      log('✓ 已拒绝来电');
+    }
+
+    // ========== 挂断电话 ==========
+    hangupBtn.onclick = () => {
+      log('=== 挂断电话 ===');
+      
+      // 通知对方挂断
+      ws.send(JSON.stringify({
+        type: 'call-ended',
+        from: clientId
+      }));
+      
+      endCall();
+    };
+
+    function endCall() {
+      // 1. 停止本地流
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          track.stop();
+          log(`停止 ${track.kind} track`);
+        });
+        localStream = null;
+        localVideo.srcObject = null;
+      }
+
+      // 2. 关闭 PeerConnection
+      if (pc) {
+        pc.close();
+        pc = null;
+        log('PeerConnection 已关闭');
+      }
+
+      // 3. 清空远程视频
+      remoteVideo.srcObject = null;
+
+      // 4. 重置UI
+      resetToIdle();
+      
+      log('✓ 通话已结束');
+    }
+
+    function resetToIdle() {
+      videoContainer.style.display = 'none';
+      mediaControls.style.display = 'none';
+      callBtn.style.display = 'block';
+      hangupBtn.style.display = 'none';
+      waitingEl.style.display = 'none';
+      
+      callBtn.disabled = false;
+      callState = 'idle';
+      
+      updateStatus('callStatus', '空闲', false);
+    }
+
+    // ========== 连接信令服务器 ==========
+    function connectSignaling() {
+      log('正在连接信令服务器...');
+      ws = new WebSocket('ws://localhost:3000');
+
+      ws.onopen = () => {
+        log('✓ 信令服务器连接成功');
+        updateStatus('wsStatus', '已连接', true);
+      };
+
+      ws.onmessage = async (event) => {
+        const message = JSON.parse(event.data);
+        await handleSignalingMessage(message);
+      };
+
+      ws.onerror = (error) => {
+        log('✗ WebSocket 错误', 'error');
+        updateStatus('wsStatus', '错误', false);
+      };
+
+      ws.onclose = () => {
+        log('✗ 信令服务器断开连接', 'error');
+        updateStatus('wsStatus', '断开', false);
+        
+        // 如果通话中断开，自动重连
+        if (callState !== 'idle') {
+          setTimeout(() => {
+            log('尝试重新连接信令服务器...');
+            connectSignaling();
+          }, 3000);
+        }
+      };
+    }
+
+    // ========== 处理信令消息 ==========
+    async function handleSignalingMessage(message) {
+      log(`收到消息: ${message.type}`);
+
+      switch (message.type) {
+        case 'connected':
+          // 收到自己的客户端ID
+          clientId = message.clientId;
+          clientIdEl.textContent = clientId.substring(0, 8) + '...';
+          log(`✓ 我的客户端ID: ${clientId}`);
+          break;
+
+        case 'user-count':
+          // 更新在线人数
+          userCountEl.textContent = message.count;
+          break;
+
+        case 'call-request':
+          // 收到来电
+          log('📞 收到来电！');
+          callState = 'ringing';
+          updateStatus('callStatus', '来电中...', false);
+          
+          // 显示来电通知
+          incomingCallEl.classList.add('show');
+          
+          // 播放铃声
+          ringtone.play().catch(e => log('铃声播放失败: ' + e.message));
+          break;
+
+        case 'call-accepted':
+          // 对方接听了
+          log('✓ 对方已接听！');
+          callState = 'connected';
+          updateStatus('callStatus', '通话中', true);
+          waitingEl.style.display = 'none';
+          
+          // 主叫方创建连接
+          await createPeerConnection();
+          break;
+
+        case 'call-rejected':
+          // 对方拒绝了
+          log('✗ 对方拒绝了通话');
+          alert('对方拒绝了通话');
+          endCall();
+          break;
+
+        case 'call-ended':
+          // 对方挂断了
+          log('✗ 对方已挂断');
+          alert('对方已挂断');
+          endCall();
+          break;
+
+        case 'offer':
+          // 收到 offer
+          log('收到 offer');
+          if (!pc) {
+            await createPeerConnection();
+          }
+          await handleOffer(message.offer);
+          break;
+
+        case 'answer':
+          // 收到 answer
+          if (!pc) {
+            log('收到 answer，但连接不存在');
+            return;
+          }
+          log('收到 answer');
+          await handleAnswer(message.answer);
+          break;
+
+        case 'ice-candidate':
+          // 收到 ICE candidate
+          if (!pc) {
+            log('收到 ICE candidate，但连接不存在');
+            return;
+          }
+          await handleIceCandidate(message.candidate);
+          break;
+
+        case 'user-left':
+          // 对方离线
+          log('对方已离线');
+          if (callState !== 'idle') {
+            alert('对方已离线，通话结束');
+            endCall();
+          }
+          break;
+      }
+    }
+
+    // ========== 创建 PeerConnection ==========
+    async function createPeerConnection() {
+      log('创建 RTCPeerConnection...');
+
+      pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      });
+
+      // 添加本地流到连接
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          pc.addTrack(track, localStream);
+          log(`添加本地 ${track.kind} track`);
+        });
+      }
+
+      // 监听 ICE candidate
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          ws.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate
+          }));
+        }
+      };
+
+      // 接收远程流
+      pc.ontrack = (event) => {
+        log('✓ 收到远程流!');
+        remoteVideo.srcObject = event.streams[0];
+        updateStatus('callStatus', '通话中（已连接）', true);
+      };
+
+      // 连接状态监控
+      pc.onconnectionstatechange = () => {
+        log(`连接状态: ${pc.connectionState}`);
+
+        if (pc.connectionState === 'connected') {
+          log('✓✓✓ WebRTC 连接建立成功！');
+        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          log('连接断开或失败');
+        }
+      };
+
+      log('✓ PeerConnection 创建完成');
+    }
+
+    // ========== 创建 Offer ==========
+    async function createOffer() {
+      if (!pc) return;
+      
+      log('创建 offer...');
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      ws.send(JSON.stringify({
+        type: 'offer',
+        offer: offer
+      }));
+      
+      log('✓ offer 已发送');
+    }
+
+    // ========== 处理 Offer ==========
+    async function handleOffer(offer) {
+      if (!pc) return;
+      
+      log('处理 offer...');
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      
+      log('创建 answer...');
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      
+      ws.send(JSON.stringify({
+        type: 'answer',
+        answer: answer
+      }));
+      
+      log('✓ answer 已发送');
+    }
+
+    // ========== 处理 Answer ==========
+    async function handleAnswer(answer) {
+      if (!pc) return;
+      
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      log('✓ answer 已设置');
+    }
+
+    // ========== 处理 ICE Candidate ==========
+    async function handleIceCandidate(candidate) {
+      if (!pc) return;
+      
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        log('✗ 添加 ICE candidate 失败: ' + error.message, 'error');
+      }
+    }
+
+    // ========== 切换摄像头 ==========
+    toggleVideoBtn.onclick = () => {
+      if (!localStream) return;
+      
+      const videoTrack = localStream.getVideoTracks()[0];
+      videoTrack.enabled = !videoTrack.enabled;
+      
+      toggleVideoBtn.textContent = videoTrack.enabled ? '📹 关闭摄像头' : '📹 开启摄像头';
+      toggleVideoBtn.classList.toggle('off');
+      log(videoTrack.enabled ? '摄像头已开启' : '摄像头已关闭');
+    };
+
+    // ========== 切换麦克风 ==========
+    toggleAudioBtn.onclick = () => {
+      if (!localStream) return;
+      
+      const audioTrack = localStream.getAudioTracks()[0];
+      audioTrack.enabled = !audioTrack.enabled;
+      
+      toggleAudioBtn.textContent = audioTrack.enabled ? '🎤 静音' : '🎤 取消静音';
+      toggleAudioBtn.classList.toggle('off');
+      log(audioTrack.enabled ? '麦克风已开启' : '麦克风已静音');
+    };
+
+    // ========== 工具函数 ==========
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      logItem.style.color = type === 'error' ? '#ef4444' : '#10b981';
+      logItem.textContent = `[${time}] ${message}`;
+      logEl.appendChild(logItem);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(message);
+    }
+
+    function updateStatus(elementId, text, isConnected) {
+      const el = document.getElementById(elementId);
+      el.textContent = text;
+      el.className = 'status-value ' + (isConnected ? 'connected' : 'disconnected');
+    }
+
+    // 页面关闭时清理资源
+    window.onbeforeunload = () => {
+      if (callState !== 'idle') {
+        ws.send(JSON.stringify({
+          type: 'call-ended',
+          from: clientId
+        }));
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (pc) {
+        pc.close();
+      }
+      if (ws) {
+        ws.close();
+      }
+    };
+  </script>
+</body>
+</html>

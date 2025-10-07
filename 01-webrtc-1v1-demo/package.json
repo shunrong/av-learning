@@ -1,0 +1,19 @@
+{
+  "name": "webrtc-1v1-demo",
+  "version": "1.0.0",
+  "description": "WebRTC 1对1视频通话最小可用Demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "webrtc",
+    "video-call",
+    "signaling"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}

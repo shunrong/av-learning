@@ -1,0 +1,381 @@
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #333;
+}
+
+/* 登录区域 */
+.login-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-container {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-container h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #667eea;
+  font-size: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.tips {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-control {
+  background: #4CAF50;
+  color: white;
+  margin: 0 5px;
+}
+
+.btn-control.disabled {
+  background: #f44336;
+}
+
+.btn-control:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: #f44336;
+  color: white;
+  margin: 0 5px;
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+/* 会议区域 */
+.conference-section {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #1a1a2e;
+  overflow: hidden; /* 防止整体滚动 */
+}
+
+/* 顶部信息栏 */
+.top-bar {
+  background: #16213e;
+  padding: 15px 20px;
+  color: white;
+  border-bottom: 1px solid #0f3460;
+}
+
+.room-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
+/* 视频区域 */
+.video-area {
+  flex: 1;
+  display: grid;
+  padding: 20px;
+  gap: 20px;
+  overflow-y: auto; /* 允许垂直滚动 */
+  overflow-x: hidden; /* 隐藏水平滚动 */
+  position: relative;
+  align-content: start; /* 视频从顶部开始排列 */
+  max-height: 100%; /* 确保不超出父容器 */
+}
+
+/* 根据参会人数自动调整网格 */
+.video-area.participants-1 {
+  grid-template-columns: 1fr;
+  align-content: center; /* 单人时居中显示 */
+}
+
+.video-area.participants-2 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(300px, 1fr);
+}
+
+.video-area.participants-3,
+.video-area.participants-4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(250px, 1fr);
+}
+
+.video-area.participants-5,
+.video-area.participants-6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(220px, 1fr);
+}
+
+.video-area.participants-more {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: minmax(220px, auto);
+  align-content: start;
+}
+
+/* 本地视频 - 悬浮在右下角 */
+.local-video-container {
+  position: fixed;
+  right: 30px;
+  bottom: 100px;
+  width: 200px;
+  height: 150px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  border: 3px solid #667eea;
+  transition: all 0.3s;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.local-video-container:hover {
+  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+  transform: scale(1.05);
+}
+
+.local-video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 完整显示视频，可能有黑边 */
+}
+
+.video-label {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 本地视频标签特殊样式 */
+.local-video-container .video-label {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: bold;
+}
+
+/* 视频容器 - 统一样式（本地+远程） */
+.video-container {
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  aspect-ratio: 4/3; /* 保持 4:3 的容器比例 */
+  min-height: 200px;
+  max-height: 100%; /* 不超过网格行高 */
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-container:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 完整显示视频，保持宽高比，可能有黑边 */
+  background: #000;
+}
+
+/* 控制栏 */
+.control-bar {
+  background: #16213e;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  border-top: 1px solid #0f3460;
+}
+
+/* 侧边栏 */
+.sidebar {
+  position: fixed;
+  right: 0;
+  top: 60px;
+  bottom: 80px;
+  width: 250px;
+  background: #16213e;
+  border-left: 1px solid #0f3460;
+  padding: 20px;
+  color: white;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.sidebar h3 {
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #667eea;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  padding: 10px;
+  margin-bottom: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* 为侧边栏留出空间 */
+.video-area {
+  padding-right: 270px; /* 为侧边栏留出空间 */
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .video-area {
+    padding-right: 20px; /* 移除侧边栏空间 */
+  }
+  
+  .sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .local-video-container {
+    width: 150px;
+    height: 112px;
+    right: 15px;
+    bottom: 90px;
+  }
+  
+  .video-area.participants-2,
+  .video-area.participants-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .control-bar {
+    padding: 15px 10px;
+    gap: 10px;
+  }
+  
+  .btn-control,
+  .btn-danger {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
