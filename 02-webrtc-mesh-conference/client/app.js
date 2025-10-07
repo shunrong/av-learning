@@ -46,6 +46,12 @@ class ConferenceApp {
     // 切换视频
     this.ui.elements.toggleVideoBtn.onclick = () => this._handleToggleVideo();
     
+    // 切换屏幕共享
+    this.ui.elements.toggleScreenBtn.onclick = () => this._handleToggleScreenShare();
+    
+    // 切换录制
+    this.ui.elements.toggleRecordBtn.onclick = () => this._handleToggleRecord();
+    
     // 发送聊天消息
     this.ui.elements.sendMessageBtn.onclick = () => this._handleSendMessage();
     
@@ -155,6 +161,47 @@ class ConferenceApp {
       this.ui.updateVideoButton(enabled);
     });
 
+    // 屏幕共享
+    this.roomClient.on('screen-share-started', (track) => {
+      logger.info('屏幕共享已开始');
+      this.ui.updateScreenShareButton(true);
+      // 更新本地视频显示
+      if (this.ui.elements.localVideo) {
+        this.ui.elements.localVideo.srcObject = new MediaStream([track]);
+      }
+    });
+
+    this.roomClient.on('screen-share-stopped', (track) => {
+      logger.info('屏幕共享已停止');
+      this.ui.updateScreenShareButton(false);
+      // 恢复本地摄像头显示
+      if (this.ui.elements.localVideo && this.roomClient.mediaManager.localStream) {
+        this.ui.elements.localVideo.srcObject = this.roomClient.mediaManager.localStream;
+      }
+    });
+
+    // 录制相关
+    this.roomClient.on('recording-started', (data) => {
+      logger.info('录制已开始:', data);
+      this.ui.updateRecordButton(true);
+      this.ui.showMessage('会议录制已开始');
+    });
+
+    this.roomClient.on('recording-stopped', (data) => {
+      logger.info('录制已停止:', data);
+      this.ui.updateRecordButton(false);
+      
+      if (data.blob && data.url) {
+        const sizeMB = (data.size / 1024 / 1024).toFixed(2);
+        const durationSec = (data.duration / 1000).toFixed(1);
+        const message = `录制完成！文件大小: ${sizeMB} MB, 时长: ${durationSec} 秒\n是否立即下载？`;
+        
+        if (confirm(message)) {
+          this.roomClient.downloadRecording();
+        }
+      }
+    });
+
     // 聊天消息
     this.roomClient.on('chat-message', (message) => {
       this.ui.addChatMessage(message);
@@ -232,6 +279,43 @@ class ConferenceApp {
   _handleToggleVideo() {
     if (!this.roomClient) return;
     this.roomClient.toggleVideo();
+  }
+
+  /**
+   * 处理屏幕共享切换
+   */
+  async _handleToggleScreenShare() {
+    if (!this.roomClient) return;
+    
+    try {
+      logger.info('切换屏幕共享...');
+      await this.roomClient.toggleScreenShare();
+    } catch (error) {
+      logger.error('切换屏幕共享失败:', error);
+      this.ui.showError('屏幕共享失败，请检查浏览器权限');
+    }
+  }
+
+  /**
+   * 处理录制切换
+   */
+  _handleToggleRecord() {
+    if (!this.roomClient) return;
+    
+    try {
+      const state = this.roomClient.getRecordingState();
+      
+      if (state.isRecording) {
+        logger.info('停止录制...');
+        this.roomClient.stopRecording();
+      } else {
+        logger.info('开始录制...');
+        this.roomClient.startRecording();
+      }
+    } catch (error) {
+      logger.error('录制操作失败:', error);
+      this.ui.showError('录制操作失败: ' + error.message);
+    }
   }
 
   /**

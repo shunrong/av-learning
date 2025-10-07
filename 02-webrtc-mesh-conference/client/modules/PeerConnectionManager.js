@@ -259,6 +259,46 @@ export class PeerConnectionManager extends EventEmitter {
   }
 
   /**
+   * 替换所有连接的视频轨道
+   * @param {MediaStreamTrack} newVideoTrack - 新的视频轨道
+   * @returns {Promise<number>} 成功替换的数量
+   */
+  async replaceVideoTrack(newVideoTrack) {
+    logger.info('开始替换所有 PeerConnection 的视频轨道...');
+    let successCount = 0;
+
+    const promises = [];
+    
+    for (const [userId, pc] of this.peerConnections.entries()) {
+      const promise = (async () => {
+        try {
+          // 获取视频发送器
+          const senders = pc.getSenders();
+          const videoSender = senders.find(sender => 
+            sender.track && sender.track.kind === 'video'
+          );
+
+          if (videoSender) {
+            await videoSender.replaceTrack(newVideoTrack);
+            logger.debug(`✅ 替换视频轨道成功 for ${userId}`);
+            successCount++;
+          } else {
+            logger.warn(`未找到视频发送器 for ${userId}`);
+          }
+        } catch (error) {
+          logger.error(`替换视频轨道失败 for ${userId}:`, error);
+        }
+      })();
+      
+      promises.push(promise);
+    }
+
+    await Promise.all(promises);
+    logger.info(`视频轨道替换完成: ${successCount}/${this.peerConnections.size}`);
+    return successCount;
+  }
+
+  /**
    * 获取连接统计信息
    */
   async getStats(userId) {

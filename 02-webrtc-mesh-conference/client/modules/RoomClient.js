@@ -9,6 +9,7 @@ import { SignalingClient } from './SignalingClient.js';
 import { MediaManager } from './MediaManager.js';
 import { PeerConnectionManager } from './PeerConnectionManager.js';
 import { ChatManager } from './ChatManager.js';
+import { RecordManager } from './RecordManager.js';
 
 export class RoomClient extends EventEmitter {
   constructor(signalingUrl) {
@@ -19,6 +20,7 @@ export class RoomClient extends EventEmitter {
     this.mediaManager = new MediaManager();
     this.pcManager = new PeerConnectionManager();
     this.chatManager = new ChatManager();
+    this.recordManager = new RecordManager();
     
     // 将 ChatManager 注入到 PCManager
     this.pcManager.setChatManager(this.chatManager);
@@ -118,6 +120,40 @@ export class RoomClient extends EventEmitter {
 
     this.mediaManager.on('video-toggled', (enabled) => {
       this.emit('video-toggled', enabled);
+    });
+
+    this.mediaManager.on('switched-to-screen', (track) => {
+      logger.info('[RoomClient] 已切换到屏幕共享');
+      this.emit('screen-share-started', track);
+    });
+
+    this.mediaManager.on('switched-to-camera', (track) => {
+      logger.info('[RoomClient] 已切换回摄像头');
+      this.emit('screen-share-stopped', track);
+    });
+
+    this.mediaManager.on('screen-share-stopped', () => {
+      logger.info('[RoomClient] 屏幕共享已停止（用户操作）');
+      this.emit('screen-share-stopped');
+    });
+
+    // === 录制管理事件 ===
+    this.recordManager.on('recording-started', (data) => {
+      logger.info('[RoomClient] 录制已开始');
+      this.emit('recording-started', data);
+    });
+
+    this.recordManager.on('recording-stopped', (data) => {
+      logger.info('[RoomClient] 录制已停止');
+      this.emit('recording-stopped', data);
+    });
+
+    this.recordManager.on('recording-paused', () => {
+      this.emit('recording-paused');
+    });
+
+    this.recordManager.on('recording-resumed', () => {
+      this.emit('recording-resumed');
     });
 
     // === 聊天管理事件 ===
@@ -297,6 +333,89 @@ export class RoomClient extends EventEmitter {
   }
 
   /**
+   * 切换屏幕共享
+   * @returns {Promise<boolean>}
+   */
+  async toggleScreenShare() {
+    try {
+      if (this.mediaManager.isScreenSharing) {
+        // 切换回摄像头
+        const cameraTrack = await this.mediaManager.switchToCamera();
+        if (cameraTrack) {
+          await this.pcManager.replaceVideoTrack(cameraTrack);
+          logger.info('✅ 已切换回摄像头');
+          return false; // 不再共享屏幕
+        }
+      } else {
+        // 切换到屏幕共享
+        const screenTrack = await this.mediaManager.switchToScreenShare();
+        if (screenTrack) {
+          await this.pcManager.replaceVideoTrack(screenTrack);
+          logger.info('✅ 已开始屏幕共享');
+          return true; // 正在共享屏幕
+        }
+      }
+    } catch (error) {
+      logger.error('切换屏幕共享失败:', error);
+      this.emit('error', { type: 'screen-share-failed', error });
+      throw error;
+    }
+  }
+
+  /**
+   * 开始录制
+   * @returns {boolean}
+   */
+  startRecording() {
+    try {
+      // 录制本地流
+      const stream = this.mediaManager.localStream;
+      if (!stream) {
+        logger.error('没有可录制的媒体流');
+        return false;
+      }
+
+      this.recordManager.startRecording(stream);
+      logger.info('✅ 开始录制');
+      return true;
+    } catch (error) {
+      logger.error('开始录制失败:', error);
+      this.emit('error', { type: 'start-recording-failed', error });
+      return false;
+    }
+  }
+
+  /**
+   * 停止录制
+   * @returns {boolean}
+   */
+  stopRecording() {
+    try {
+      this.recordManager.stopRecording();
+      logger.info('✅ 停止录制');
+      return true;
+    } catch (error) {
+      logger.error('停止录制失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 下载录制文件
+   * @param {string} filename - 文件名
+   */
+  downloadRecording(filename) {
+    return this.recordManager.downloadRecording(filename);
+  }
+
+  /**
+   * 获取录制状态
+   */
+  getRecordingState() {
+    return this.recordManager.getState();
+  }
+
+  /**
    * 发送聊天消息
    * @param {string} text - 消息内容
    */
@@ -347,6 +466,7 @@ export class RoomClient extends EventEmitter {
     this.pcManager.dispose();
     this.mediaManager.dispose();
     this.chatManager.dispose();
+    this.recordManager.dispose();
     this.removeAllListeners();
     logger.info('RoomClient 已清理');
   }

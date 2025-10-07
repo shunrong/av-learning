@@ -13,6 +13,7 @@ export class MediaManager extends EventEmitter {
     this.screenStream = null;
     this.audioEnabled = true;
     this.videoEnabled = true;
+    this.isScreenSharing = false; // 是否正在共享屏幕
   }
 
   /**
@@ -141,9 +142,89 @@ export class MediaManager extends EventEmitter {
         track.stop();
       });
       this.screenStream = null;
+      this.isScreenSharing = false;
       logger.info('屏幕共享已停止');
       this.emit('screen-share-stopped');
     }
+  }
+
+  /**
+   * 切换到屏幕共享
+   * @returns {Promise<MediaStreamTrack>} 屏幕视频轨道
+   */
+  async switchToScreenShare() {
+    if (this.isScreenSharing) {
+      logger.warn('已经在共享屏幕');
+      return null;
+    }
+
+    try {
+      await this.getScreenShare();
+      this.isScreenSharing = true;
+      
+      const screenVideoTrack = this.screenStream.getVideoTracks()[0];
+      
+      // 监听用户点击浏览器的"停止共享"按钮
+      screenVideoTrack.onended = () => {
+        logger.info('用户停止了屏幕共享');
+        this.switchToCamera().catch(err => {
+          logger.error('切换回摄像头失败:', err);
+        });
+      };
+      
+      logger.info('✅ 切换到屏幕共享');
+      this.emit('switched-to-screen', screenVideoTrack);
+      return screenVideoTrack;
+    } catch (error) {
+      logger.error('切换到屏幕共享失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 切换回摄像头
+   * @returns {Promise<MediaStreamTrack>} 摄像头视频轨道
+   */
+  async switchToCamera() {
+    if (!this.isScreenSharing) {
+      logger.warn('当前不在共享屏幕');
+      return null;
+    }
+
+    try {
+      // 停止屏幕共享流
+      this.stopScreenShare();
+      this.isScreenSharing = false;
+      
+      // 获取摄像头视频轨道
+      const cameraVideoTrack = this.localStream.getVideoTracks()[0];
+      
+      if (!cameraVideoTrack) {
+        logger.error('没有找到摄像头视频轨道');
+        throw new Error('没有摄像头视频轨道');
+      }
+      
+      // 重新启用摄像头视频
+      cameraVideoTrack.enabled = true;
+      
+      logger.info('✅ 切换回摄像头');
+      this.emit('switched-to-camera', cameraVideoTrack);
+      return cameraVideoTrack;
+    } catch (error) {
+      logger.error('切换回摄像头失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取当前视频轨道（屏幕共享或摄像头）
+   * @returns {MediaStreamTrack|null}
+   */
+  getCurrentVideoTrack() {
+    if (this.isScreenSharing && this.screenStream) {
+      return this.screenStream.getVideoTracks()[0] || null;
+    }
+    return this.localStream?.getVideoTracks()[0] || null;
   }
 
   /**

@@ -110,6 +110,28 @@ body {
   background: #f44336;
 }
 
+.btn-control.active {
+  background: #FF9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+}
+
+.btn-control.recording {
+  background: #f44336;
+  animation: pulse-recording 2s infinite;
+  box-shadow: 0 0 15px rgba(244, 67, 54, 0.6);
+}
+
+@keyframes pulse-recording {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
 .btn-control:hover {
   opacity: 0.9;
 }
@@ -200,8 +222,8 @@ body {
 /* 本地视频 - 悬浮在右下角 */
 .local-video-container {
   position: fixed;
-  right: 30px;
-  bottom: 100px;
+  left: 20px;
+  bottom: 120px;
   width: 200px;
   height: 150px;
   background: #000;

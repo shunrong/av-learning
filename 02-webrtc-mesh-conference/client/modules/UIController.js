@@ -32,6 +32,8 @@ export class UIController {
       // 控制按钮
       toggleAudioBtn: document.getElementById('toggle-audio'),
       toggleVideoBtn: document.getElementById('toggle-video'),
+      toggleScreenBtn: document.getElementById('toggle-screen'),
+      toggleRecordBtn: document.getElementById('toggle-record'),
       leaveBtn: document.getElementById('leave-btn'),
       
       // 信息显示
@@ -211,6 +213,26 @@ export class UIController {
     if (this.elements.toggleVideoBtn) {
       this.elements.toggleVideoBtn.textContent = enabled ? '📹 关闭视频' : '📷 开启视频';
       this.elements.toggleVideoBtn.classList.toggle('disabled', !enabled);
+    }
+  }
+
+  /**
+   * 更新屏幕共享按钮状态
+   */
+  updateScreenShareButton(isSharing) {
+    if (this.elements.toggleScreenBtn) {
+      this.elements.toggleScreenBtn.textContent = isSharing ? '🖥️ 停止共享' : '🖥️ 共享屏幕';
+      this.elements.toggleScreenBtn.classList.toggle('active', isSharing);
+    }
+  }
+
+  /**
+   * 更新录制按钮状态
+   */
+  updateRecordButton(isRecording) {
+    if (this.elements.toggleRecordBtn) {
+      this.elements.toggleRecordBtn.textContent = isRecording ? '⏹️ 停止录制' : '⏺️ 开始录制';
+      this.elements.toggleRecordBtn.classList.toggle('recording', isRecording);
     }
   }
 
