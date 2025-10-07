@@ -5,6 +5,7 @@
 
 import { EventEmitter } from '../utils/EventEmitter.js';
 import { logger } from '../utils/logger.js';
+import { BeautyFilterManager } from './BeautyFilterManager.js';
 
 export class MediaManager extends EventEmitter {
   constructor() {
@@ -14,6 +15,9 @@ export class MediaManager extends EventEmitter {
     this.audioEnabled = true;
     this.videoEnabled = true;
     this.isScreenSharing = false; // 是否正在共享屏幕
+    this.beautyFilter = new BeautyFilterManager(); // 美颜滤镜
+    this.originalStream = null; // 保存原始流（未应用美颜）
+    this.isBeautyEnabled = false; // 美颜是否启用
   }
 
   /**
@@ -23,7 +27,19 @@ export class MediaManager extends EventEmitter {
     try {
       logger.info('正在获取本地媒体...');
       
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.originalStream = stream; // 保存原始流
+      this.localStream = stream;
+      
+      // 初始化美颜滤镜
+      if (constraints.video) {
+        try {
+          await this.beautyFilter.initialize(stream);
+          logger.info('美颜滤镜已初始化');
+        } catch (error) {
+          logger.warn('美颜滤镜初始化失败:', error);
+        }
+      }
       
       logger.info('✅ 本地媒体获取成功');
       logger.debug('媒体轨道:', this.localStream.getTracks().map(t => ({
@@ -242,11 +258,115 @@ export class MediaManager extends EventEmitter {
   }
 
   /**
+   * 启用美颜
+   * @returns {Promise<MediaStreamTrack|null>}
+   */
+  async enableBeauty() {
+    if (this.isBeautyEnabled) {
+      logger.warn('美颜已启用');
+      return null;
+    }
+
+    if (this.isScreenSharing) {
+      logger.warn('屏幕共享时不能使用美颜');
+      return null;
+    }
+
+    try {
+      this.beautyFilter.enable();
+      this.isBeautyEnabled = true;
+      
+      // 获取美颜后的视频轨道
+      const beautyTrack = this.beautyFilter.getFilteredVideoTrack();
+      
+      logger.info('✅ 美颜已启用');
+      this.emit('beauty-enabled', beautyTrack);
+      return beautyTrack;
+    } catch (error) {
+      logger.error('启用美颜失败:', error);
+      this.emit('error', { type: 'beauty-enable-failed', error });
+      throw error;
+    }
+  }
+
+  /**
+   * 禁用美颜
+   * @returns {MediaStreamTrack|null}
+   */
+  disableBeauty() {
+    if (!this.isBeautyEnabled) {
+      logger.warn('美颜未启用');
+      return null;
+    }
+
+    try {
+      this.beautyFilter.disable();
+      this.isBeautyEnabled = false;
+      
+      // 返回原始视频轨道
+      const originalTrack = this.originalStream?.getVideoTracks()[0] || null;
+      
+      logger.info('美颜已禁用');
+      this.emit('beauty-disabled', originalTrack);
+      return originalTrack;
+    } catch (error) {
+      logger.error('禁用美颜失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 切换美颜状态
+   * @returns {Promise<boolean>}
+   */
+  async toggleBeauty() {
+    if (this.isBeautyEnabled) {
+      this.disableBeauty();
+      return false;
+    } else {
+      await this.enableBeauty();
+      return true;
+    }
+  }
+
+  /**
+   * 更新美颜参数
+   * @param {Object} settings - 美颜设置
+   */
+  updateBeautySettings(settings) {
+    this.beautyFilter.updateSettings(settings);
+    logger.debug('美颜参数已更新:', settings);
+  }
+
+  /**
+   * 获取当前使用的视频轨道（考虑美颜和屏幕共享）
+   * @returns {MediaStreamTrack|null}
+   */
+  getActiveVideoTrack() {
+    if (this.isScreenSharing && this.screenStream) {
+      return this.screenStream.getVideoTracks()[0] || null;
+    }
+    
+    if (this.isBeautyEnabled) {
+      return this.beautyFilter.getFilteredVideoTrack();
+    }
+    
+    return this.localStream?.getVideoTracks()[0] || null;
+  }
+
+  /**
    * 清理所有资源
    */
   dispose() {
     this.stopLocalMedia();
     this.stopScreenShare();
+    this.beautyFilter.dispose();
+    
+    if (this.originalStream) {
+      this.originalStream.getTracks().forEach(track => track.stop());
+      this.originalStream = null;
+    }
+    
     this.removeAllListeners();
     logger.info('MediaManager 已清理');
   }

@@ -137,6 +137,17 @@ export class RoomClient extends EventEmitter {
       this.emit('screen-share-stopped');
     });
 
+    // === 美颜功能事件 ===
+    this.mediaManager.on('beauty-enabled', (track) => {
+      logger.info('[RoomClient] 美颜已启用');
+      this.emit('beauty-enabled', track);
+    });
+
+    this.mediaManager.on('beauty-disabled', (track) => {
+      logger.info('[RoomClient] 美颜已禁用');
+      this.emit('beauty-disabled', track);
+    });
+
     // === 录制管理事件 ===
     this.recordManager.on('recording-started', (data) => {
       logger.info('[RoomClient] 录制已开始');
@@ -413,6 +424,46 @@ export class RoomClient extends EventEmitter {
    */
   getRecordingState() {
     return this.recordManager.getState();
+  }
+
+  /**
+   * 切换美颜
+   * @returns {Promise<boolean>}
+   */
+  async toggleBeauty() {
+    try {
+      const isEnabled = await this.mediaManager.toggleBeauty();
+      
+      if (isEnabled) {
+        // 启用美颜后，替换所有 PeerConnection 的视频轨道
+        const beautyTrack = this.mediaManager.beautyFilter.getFilteredVideoTrack();
+        if (beautyTrack) {
+          await this.pcManager.replaceVideoTrack(beautyTrack);
+          logger.info('✅ 美颜已启用并同步到远程');
+        }
+      } else {
+        // 禁用美颜后，恢复原始视频轨道
+        const originalTrack = this.mediaManager.originalStream?.getVideoTracks()[0];
+        if (originalTrack) {
+          await this.pcManager.replaceVideoTrack(originalTrack);
+          logger.info('✅ 美颜已禁用并同步到远程');
+        }
+      }
+      
+      return isEnabled;
+    } catch (error) {
+      logger.error('切换美颜失败:', error);
+      this.emit('error', { type: 'beauty-toggle-failed', error });
+      throw error;
+    }
+  }
+
+  /**
+   * 更新美颜参数
+   * @param {Object} settings - 美颜设置
+   */
+  updateBeautySettings(settings) {
+    this.mediaManager.updateBeautySettings(settings);
   }
 
   /**

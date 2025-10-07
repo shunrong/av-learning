@@ -32,6 +32,7 @@ export class UIController {
       // 控制按钮
       toggleAudioBtn: document.getElementById('toggle-audio'),
       toggleVideoBtn: document.getElementById('toggle-video'),
+      toggleBeautyBtn: document.getElementById('toggle-beauty'),
       toggleScreenBtn: document.getElementById('toggle-screen'),
       toggleRecordBtn: document.getElementById('toggle-record'),
       leaveBtn: document.getElementById('leave-btn'),
@@ -213,6 +214,16 @@ export class UIController {
     if (this.elements.toggleVideoBtn) {
       this.elements.toggleVideoBtn.textContent = enabled ? '📹 关闭视频' : '📷 开启视频';
       this.elements.toggleVideoBtn.classList.toggle('disabled', !enabled);
+    }
+  }
+
+  /**
+   * 更新美颜按钮状态
+   */
+  updateBeautyButton(isEnabled) {
+    if (this.elements.toggleBeautyBtn) {
+      this.elements.toggleBeautyBtn.textContent = isEnabled ? '✨ 关闭美颜' : '✨ 美颜';
+      this.elements.toggleBeautyBtn.classList.toggle('active', isEnabled);
     }
   }
 

@@ -46,6 +46,9 @@ class ConferenceApp {
     // 切换视频
     this.ui.elements.toggleVideoBtn.onclick = () => this._handleToggleVideo();
     
+    // 切换美颜
+    this.ui.elements.toggleBeautyBtn.onclick = () => this._handleToggleBeauty();
+    
     // 切换屏幕共享
     this.ui.elements.toggleScreenBtn.onclick = () => this._handleToggleScreenShare();
     
@@ -159,6 +162,28 @@ class ConferenceApp {
 
     this.roomClient.on('video-toggled', (enabled) => {
       this.ui.updateVideoButton(enabled);
+    });
+
+    // 美颜功能
+    this.roomClient.on('beauty-enabled', (track) => {
+      logger.info('美颜已启用');
+      this.ui.updateBeautyButton(true);
+      // 更新本地视频显示为美颜后的视频
+      if (this.ui.elements.localVideo && track) {
+        const stream = this.roomClient.mediaManager.beautyFilter.getFilteredStream();
+        if (stream) {
+          this.ui.elements.localVideo.srcObject = stream;
+        }
+      }
+    });
+
+    this.roomClient.on('beauty-disabled', (track) => {
+      logger.info('美颜已禁用');
+      this.ui.updateBeautyButton(false);
+      // 恢复原始视频显示
+      if (this.ui.elements.localVideo && this.roomClient.mediaManager.originalStream) {
+        this.ui.elements.localVideo.srcObject = this.roomClient.mediaManager.originalStream;
+      }
     });
 
     // 屏幕共享
@@ -279,6 +304,21 @@ class ConferenceApp {
   _handleToggleVideo() {
     if (!this.roomClient) return;
     this.roomClient.toggleVideo();
+  }
+
+  /**
+   * 处理美颜切换
+   */
+  async _handleToggleBeauty() {
+    if (!this.roomClient) return;
+    
+    try {
+      logger.info('切换美颜...');
+      await this.roomClient.toggleBeauty();
+    } catch (error) {
+      logger.error('切换美颜失败:', error);
+      this.ui.showError('美颜切换失败: ' + error.message);
+    }
   }
 
   /**
