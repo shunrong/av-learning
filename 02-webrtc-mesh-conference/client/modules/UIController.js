@@ -9,7 +9,8 @@ export class UIController {
   constructor() {
     this.elements = {};
     this.remoteVideos = new Map(); // Map<userId, videoElement>
-    this.isChatCollapsed = false; // 聊天面板折叠状态
+    this.currentTab = 'users'; // 当前激活的 Tab
+    this.unreadCount = 0; // 未读消息数
   }
 
   /**
@@ -38,14 +39,22 @@ export class UIController {
       userList: document.getElementById('user-list'),
       connectionStatus: document.getElementById('connection-status'),
       
-      // 聊天相关
+      // Tab 切换
+      tabUsers: document.getElementById('tab-users'),
+      tabChat: document.getElementById('tab-chat'),
+      usersPanel: document.getElementById('users-panel'),
       chatPanel: document.getElementById('chat-panel'),
+      chatBadge: document.getElementById('chat-badge'),
+      
+      // 聊天相关
       chatMessages: document.getElementById('chat-messages'),
       chatInput: document.getElementById('chat-input'),
-      sendMessageBtn: document.getElementById('send-message'),
-      toggleChatBtn: document.getElementById('toggle-chat')
+      sendMessageBtn: document.getElementById('send-message')
     };
 
+    // 绑定 Tab 切换事件
+    this._setupTabEvents();
+    
     // 绑定聊天事件
     this._setupChatEvents();
 
@@ -221,6 +230,72 @@ export class UIController {
     console.log('提示:', message);
   }
 
+  // ========== Tab 切换相关方法 ==========
+
+  /**
+   * 设置 Tab 切换事件
+   * @private
+   */
+  _setupTabEvents() {
+    // 参会人员 Tab
+    if (this.elements.tabUsers) {
+      this.elements.tabUsers.onclick = () => this.switchTab('users');
+    }
+
+    // 聊天 Tab
+    if (this.elements.tabChat) {
+      this.elements.tabChat.onclick = () => this.switchTab('chat');
+    }
+  }
+
+  /**
+   * 切换 Tab
+   * @param {string} tab - Tab 名称 ('users' 或 'chat')
+   */
+  switchTab(tab) {
+    if (this.currentTab === tab) return;
+
+    this.currentTab = tab;
+
+    // 更新 Tab 按钮状态
+    this.elements.tabUsers.classList.toggle('active', tab === 'users');
+    this.elements.tabChat.classList.toggle('active', tab === 'chat');
+
+    // 更新 Tab 面板显示
+    this.elements.usersPanel.classList.toggle('active', tab === 'users');
+    this.elements.chatPanel.classList.toggle('active', tab === 'chat');
+
+    // 切换到聊天时清除未读消息
+    if (tab === 'chat') {
+      this.clearUnreadBadge();
+      this._scrollChatToBottom();
+    }
+
+    logger.debug(`切换到 ${tab} 标签`);
+  }
+
+  /**
+   * 更新未读消息徽章
+   * @param {number} count - 未读消息数
+   */
+  updateUnreadBadge(count) {
+    this.unreadCount = count;
+
+    if (count > 0) {
+      this.elements.chatBadge.textContent = count > 99 ? '99+' : count;
+      this.elements.chatBadge.style.display = 'inline-block';
+    } else {
+      this.elements.chatBadge.style.display = 'none';
+    }
+  }
+
+  /**
+   * 清除未读消息徽章
+   */
+  clearUnreadBadge() {
+    this.updateUnreadBadge(0);
+  }
+
   // ========== 聊天相关方法 ==========
 
   /**
@@ -228,11 +303,6 @@ export class UIController {
    * @private
    */
   _setupChatEvents() {
-    // 折叠/展开聊天面板
-    if (this.elements.toggleChatBtn) {
-      this.elements.toggleChatBtn.onclick = () => this.toggleChat();
-    }
-
     // 回车发送消息
     if (this.elements.chatInput) {
       this.elements.chatInput.onkeypress = (e) => {
@@ -241,19 +311,6 @@ export class UIController {
           this.onSendMessage && this.onSendMessage();
         }
       };
-    }
-  }
-
-  /**
-   * 切换聊天面板
-   */
-  toggleChat() {
-    this.isChatCollapsed = !this.isChatCollapsed;
-    this.elements.chatPanel.classList.toggle('collapsed', this.isChatCollapsed);
-    
-    // 清除未读标记
-    if (!this.isChatCollapsed) {
-      this.elements.chatPanel.classList.remove('has-unread');
     }
   }
 
@@ -293,9 +350,9 @@ export class UIController {
     // 滚动到底部
     this._scrollChatToBottom();
     
-    // 如果面板是折叠的，显示未读标记
-    if (this.isChatCollapsed && isRemote) {
-      this.elements.chatPanel.classList.add('has-unread');
+    // 如果当前不在聊天 Tab 且是远程消息，增加未读消息数
+    if (this.currentTab !== 'chat' && (isRemote || type === 'system')) {
+      this.updateUnreadBadge(this.unreadCount + 1);
     }
   }
 
