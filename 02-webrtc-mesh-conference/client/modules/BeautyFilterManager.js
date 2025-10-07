@@ -35,7 +35,7 @@ export class BeautyFilterManager extends EventEmitter {
    * @param {MediaStream} stream - 原始视频流
    * @param {HTMLVideoElement} videoElement - 视频元素（可选）
    */
-  initialize(stream, videoElement = null) {
+  async initialize(stream, videoElement = null) {
     try {
       // 创建视频元素
       this.sourceVideo = videoElement || document.createElement('video');
@@ -44,38 +44,62 @@ export class BeautyFilterManager extends EventEmitter {
       this.sourceVideo.muted = true;
       this.sourceVideo.playsInline = true;
 
-      // 等待视频加载
-      return new Promise((resolve, reject) => {
-        this.sourceVideo.onloadedmetadata = () => {
-          const width = this.sourceVideo.videoWidth;
-          const height = this.sourceVideo.videoHeight;
+      // 等待视频加载并播放
+      await new Promise((resolve, reject) => {
+        this.sourceVideo.onloadedmetadata = async () => {
+          try {
+            // 确保视频开始播放
+            await this.sourceVideo.play();
+            
+            const width = this.sourceVideo.videoWidth;
+            const height = this.sourceVideo.videoHeight;
 
-          logger.info(`视频尺寸: ${width}x${height}`);
+            if (width === 0 || height === 0) {
+              throw new Error('视频尺寸无效');
+            }
 
-          // 创建 Canvas
-          this.canvas = document.createElement('canvas');
-          this.canvas.width = width;
-          this.canvas.height = height;
-          this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+            logger.info(`视频尺寸: ${width}x${height}`);
 
-          // 从 Canvas 创建媒体流
-          this.filteredStream = this.canvas.captureStream(30); // 30 FPS
+            // 创建 Canvas
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = width;
+            this.canvas.height = height;
+            this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
 
-          // 添加原始音频轨道到滤镜流
-          const audioTracks = stream.getAudioTracks();
-          audioTracks.forEach(track => {
-            this.filteredStream.addTrack(track);
-          });
+            // 先绘制一帧到 Canvas（避免黑屏）
+            this.ctx.drawImage(this.sourceVideo, 0, 0, width, height);
 
-          logger.info('✅ 美颜滤镜初始化成功');
-          resolve(this.filteredStream);
+            // 从 Canvas 创建媒体流
+            this.filteredStream = this.canvas.captureStream(30); // 30 FPS
+
+            // 添加原始音频轨道到滤镜流
+            const audioTracks = stream.getAudioTracks();
+            audioTracks.forEach(track => {
+              this.filteredStream.addTrack(track);
+            });
+
+            // 启动基础绘制（始终保持 Canvas 有内容）
+            this._startBasicDrawing();
+
+            logger.info('✅ 美颜滤镜初始化成功');
+            resolve(this.filteredStream);
+          } catch (err) {
+            reject(err);
+          }
         };
 
         this.sourceVideo.onerror = (error) => {
           logger.error('视频加载失败:', error);
           reject(error);
         };
+
+        // 超时处理
+        setTimeout(() => {
+          reject(new Error('视频加载超时'));
+        }, 5000);
       });
+
+      return this.filteredStream;
     } catch (error) {
       logger.error('初始化美颜滤镜失败:', error);
       throw error;
@@ -93,10 +117,11 @@ export class BeautyFilterManager extends EventEmitter {
 
     if (!this.canvas || !this.sourceVideo) {
       logger.error('美颜滤镜未初始化');
-      return;
+      throw new Error('美颜滤镜未初始化');
     }
 
     this.isEnabled = true;
+    // _startProcessing 会接管绘制循环，应用美颜效果
     this._startProcessing();
     logger.info('✅ 美颜已启用');
     this.emit('enabled');
@@ -113,6 +138,8 @@ export class BeautyFilterManager extends EventEmitter {
 
     this.isEnabled = false;
     this._stopProcessing();
+    // 恢复基础绘制（显示原始视频）
+    this._startBasicDrawing();
     logger.info('美颜已禁用');
     this.emit('disabled');
   }
@@ -154,12 +181,57 @@ export class BeautyFilterManager extends EventEmitter {
   }
 
   /**
-   * 开始处理视频帧
+   * 启动基础绘制（无美颜）
+   * @private
+   */
+  _startBasicDrawing() {
+    const drawFrame = () => {
+      // 如果美颜已启用，停止基础绘制
+      if (this.isEnabled) {
+        return;
+      }
+
+      if (!this.sourceVideo || !this.canvas) {
+        return;
+      }
+
+      try {
+        // 只绘制原始视频，不应用美颜
+        this.ctx.drawImage(
+          this.sourceVideo,
+          0, 0,
+          this.canvas.width,
+          this.canvas.height
+        );
+
+        // 继续下一帧
+        this.animationFrameId = requestAnimationFrame(drawFrame);
+      } catch (error) {
+        logger.error('绘制视频帧失败:', error);
+      }
+    };
+
+    drawFrame();
+    logger.debug('启动基础绘制');
+  }
+
+  /**
+   * 开始处理视频帧（美颜）
    * @private
    */
   _startProcessing() {
+    // 取消基础绘制的 RAF
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     const processFrame = () => {
       if (!this.isEnabled || !this.sourceVideo || !this.canvas) {
+        // 如果美颜被禁用，恢复基础绘制
+        if (!this.isEnabled && this.canvas && this.sourceVideo) {
+          this._startBasicDrawing();
+        }
         return;
       }
 
@@ -173,9 +245,7 @@ export class BeautyFilterManager extends EventEmitter {
         );
 
         // 应用美颜滤镜
-        if (this.isEnabled) {
-          this._applyBeautyFilter();
-        }
+        this._applyBeautyFilter();
 
         // 继续下一帧
         this.animationFrameId = requestAnimationFrame(processFrame);
@@ -185,7 +255,7 @@ export class BeautyFilterManager extends EventEmitter {
     };
 
     processFrame();
-    logger.debug('开始处理视频帧');
+    logger.debug('开始美颜处理');
   }
 
   /**
@@ -197,16 +267,6 @@ export class BeautyFilterManager extends EventEmitter {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
       logger.debug('停止处理视频帧');
-    }
-
-    // 清空 Canvas（显示原始画面）
-    if (this.canvas && this.sourceVideo) {
-      this.ctx.drawImage(
-        this.sourceVideo,
-        0, 0,
-        this.canvas.width,
-        this.canvas.height
-      );
     }
   }
 
