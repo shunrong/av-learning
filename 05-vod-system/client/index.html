@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频点播系统 - VOD Learning</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>📺 视频点播系统</h1>
+      <p class="subtitle">Video On Demand - 学习视频点播技术</p>
+    </header>
+
+    <!-- 上传区域 -->
+    <section class="upload-section">
+      <h2>上传视频</h2>
+      <div class="upload-container">
+        <form id="uploadForm" class="upload-form">
+          <div class="form-group">
+            <label for="videoFile">选择视频文件:</label>
+            <input type="file" id="videoFile" name="video" accept="video/*" required>
+            <div class="file-info" id="fileInfo"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="videoTitle">视频标题:</label>
+            <input type="text" id="videoTitle" name="title" placeholder="请输入视频标题">
+          </div>
+          
+          <div class="form-group">
+            <label for="videoDescription">视频描述:</label>
+            <textarea id="videoDescription" name="description" rows="3" placeholder="请输入视频描述（可选）"></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" id="uploadBtn">
+            <span class="btn-text">上传视频</span>
+          </button>
+          
+          <div class="upload-progress" id="uploadProgress" style="display: none;">
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">上传中...</div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 视频列表 -->
+    <section class="videos-section">
+      <div class="section-header">
+        <h2>视频列表</h2>
+        <button class="btn btn-secondary" id="refreshBtn">🔄 刷新列表</button>
+      </div>
+      
+      <div id="videoList" class="video-grid">
+        <div class="loading">加载中...</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

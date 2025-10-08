@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频播放器 - VOD System</title>
+  <link rel="stylesheet" href="/styles.css">
+  <!-- 引入 hls.js 用于播放HLS流 -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="/" class="back-link">← 返回列表</a>
+      <h1 id="videoTitle">视频播放器</h1>
+    </header>
+
+    <section class="player-section">
+      <div class="player-container">
+        <video id="videoPlayer" class="video-player" controls autoplay>
+          您的浏览器不支持视频播放
+        </video>
+      </div>
+
+      <div class="video-info-panel">
+        <div class="info-tabs">
+          <button class="tab-btn active" data-tab="info">视频信息</button>
+          <button class="tab-btn" data-tab="formats">播放格式</button>
+          <button class="tab-btn" data-tab="tech">技术参数</button>
+        </div>
+
+        <div class="tab-content" id="infoTab">
+          <div class="info-item">
+            <span class="info-label">标题:</span>
+            <span class="info-value" id="infoTitle">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">描述:</span>
+            <span class="info-value" id="infoDescription">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">上传时间:</span>
+            <span class="info-value" id="infoUploadTime">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">文件大小:</span>
+            <span class="info-value" id="infoSize">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">时长:</span>
+            <span class="info-value" id="infoDuration">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">分辨率:</span>
+            <span class="info-value" id="infoResolution">-</span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="formatsTab" style="display: none;">
+          <div class="format-switch">
+            <button class="format-btn" data-format="hls">
+              <div class="format-icon">📡</div>
+              <div class="format-name">HLS流媒体</div>
+              <div class="format-desc">自适应码率，低延迟</div>
+            </button>
+            <button class="format-btn" data-format="original">
+              <div class="format-icon">🎬</div>
+              <div class="format-name">原始视频</div>
+              <div class="format-desc">原始上传格式</div>
+            </button>
+          </div>
+          <div class="current-format">
+            当前格式: <span id="currentFormat">HLS</span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="techTab" style="display: none;">
+          <div class="tech-info">
+            <h4>🔧 点播技术要点</h4>
+            <ul>
+              <li><strong>存储:</strong> 视频文件存储在服务器本地</li>
+              <li><strong>转码:</strong> 使用FFmpeg转码为HLS格式</li>
+              <li><strong>分发:</strong> 通过HTTP分发视频切片</li>
+              <li><strong>播放:</strong> 使用hls.js在浏览器中播放</li>
+              <li><strong>优势:</strong> 支持Seek、暂停、多码率切换</li>
+            </ul>
+            <div class="tech-stats" id="playbackStats">
+              <p>缓冲区: <span id="bufferLength">-</span></p>
+              <p>当前码率: <span id="currentBitrate">-</span></p>
+              <p>丢帧数: <span id="droppedFrames">-</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="player-actions">
+        <button class="btn btn-secondary" id="deleteBtn">🗑️ 删除视频</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/player.js"></script>
+</body>
+</html>
+

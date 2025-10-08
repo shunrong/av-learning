@@ -24,8 +24,17 @@ av-learning/
 │   ├── 直播技术实战指南.md          # 实战经验文档 ⭐
 │   ├── 主流直播平台架构分析.md      # 平台架构分析 ⭐
 │   └── README.md
-├── 04-hls-live-streaming/       # HLS 直播系统（规划中）
-│   └── README.md                # 详细实现规划
+├── 04-hls-live-streaming/       # HLS 直播系统
+│   ├── server/                  # HLS服务器
+│   ├── client/                  # 播放器
+│   └── README.md
+├── 05-vod-system/               # 视频点播系统 ⭐ NEW
+│   ├── server/                  # 上传、转码、存储服务
+│   ├── client/                  # 视频列表、播放器
+│   ├── media/                   # 媒体文件存储
+│   ├── 点播技术详解.md          # 点播技术深度解析 ⭐
+│   ├── 点播与直播对比.md        # VOD vs Live 全面对比 ⭐
+│   └── README.md
 └── README.md                     # 本文件
 ```
 
@@ -65,21 +74,34 @@ av-learning/
   - 延迟原理理解
   - 📚 包含深度理论文档和平台架构分析
 
-- [ ] **HLS 直播** (`04-hls-live-streaming/`) ⏳
+- [x] **HLS 直播** (`04-hls-live-streaming/`) ✅
   - TS 切片机制
   - m3u8 索引文件
   - 多码率转码
   - 自适应码率（ABR）
   - HTTP-FLV vs HLS 对比
   - LL-HLS 低延迟优化
+
+### 阶段4: 视频点播技术 🆕
+
+- [x] **视频点播系统** (`05-vod-system/`) ✅ 🔥
+  - 视频上传与文件管理
+  - FFmpeg 自动转码
+  - HLS 切片生成
+  - 缩略图自动生成
+  - 多格式播放支持
+  - 完整的点播系统实现
+  - 📚 包含点播技术详解和与直播的对比分析
   
-- [ ] **WebRTC 直播** (`05-webrtc-live/`) 📅
+### 阶段5: 混合架构与实时通信 📅
+
+- [ ] **WebRTC 直播** (`06-webrtc-live/`) 📅
   - WebRTC 推拉流（<500ms）
   - SFU 架构实现
   - 连麦互动
   - 协议对比与选型
 
-### 阶段4: WebRTC 高级特性 📅
+### 阶段6: WebRTC 高级特性 📅
 
 - [ ] **弱网优化**
   - 带宽自适应
@@ -90,7 +112,7 @@ av-learning/
   - MediaRecorder API
   - 服务端录制
 
-### 阶段5: 生产级架构 📅
+### 阶段7: 生产级架构 📅
 
 - [ ] **SFU 架构**
   - mediasoup 集成
@@ -148,6 +170,21 @@ ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream
 # 访问 http://localhost:3000/player.html
 ```
 
+### 5. 视频点播系统 🆕
+
+```bash
+# 确保已安装 FFmpeg
+brew install ffmpeg
+
+# 启动服务器
+cd 05-vod-system
+npm install
+npm start
+
+# 访问 http://localhost:3000
+# 上传视频后系统自动转码为HLS格式
+```
+
 ## 📚 深度学习文档
 
 项目包含系统的理论文档和实战指南，**强烈推荐阅读**：
@@ -194,6 +231,35 @@ ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream
 
 ---
 
+### 🎥 点播技术文档（05 项目）
+
+#### 1. [点播技术详解](./05-vod-system/点播技术详解.md) ⭐⭐⭐
+**深入理解视频点播的核心技术和实现方式**
+- 📖 点播 vs 直播的本质区别
+- 🏗️ 完整的点播系统架构（上传、转码、存储、分发）
+- 🎬 视频编码基础（H.264/H.265/VP9/AV1）
+- 🔧 FFmpeg 转码详解（命令详解、多码率、硬件加速）
+- 📡 HLS 技术深入（M3U8格式、自适应码率）
+- 💾 存储策略（本地、OSS、分布式）
+- 🎮 前端播放器实现（hls.js、Video.js）
+- ⚡ 性能优化策略
+- 🔒 安全措施（防盗链、HLS加密）
+
+#### 2. [点播与直播对比](./05-vod-system/点播与直播对比.md) ⭐⭐⭐
+**全方位对比点播和直播技术的差异**
+- 🎯 核心差异对比表
+- 🏗️ 架构对比分析
+- 📊 协议选择指南
+- 🔧 转码策略差异
+- 💾 存储策略对比
+- 💰 成本结构分析
+- 🎮 应用场景选择
+- 🚀 技术演进路线
+
+**适合**：理解点播和直播的本质区别，做出正确的技术选型
+
+---
+
 ### 📅 学习建议
 
 **快速上手**（1-2 周）：
@@ -211,7 +277,14 @@ ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream
 1. 🚀 实现 04 HLS 项目
 2. 📊 对比 HTTP-FLV vs HLS
 3. ⚡ 研究 LL-HLS 低延迟优化
-4. 🎯 尝试 WebRTC 直播
+4. 🎯 实现 05 点播系统
+
+**点播技术学习**（2-3 周）🆕：
+1. ✅ 跑通 05 项目（上传、转码、播放）
+2. 📖 阅读《点播技术详解》（理解点播核心技术）
+3. 📊 阅读《点播与直播对比》（理解选型依据）
+4. 🔧 实践 FFmpeg 转码命令
+5. 🚀 尝试对接 OSS 存储
 
 ---
 
