@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实时语音转文字 - Speech to Text</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <h1>🎤 实时语音转文字</h1>
+      <p class="subtitle">Real-time Speech to Text - 模拟钉钉闪记</p>
+      <div id="connectionStatus" class="connection-status">
+        <span class="status-dot"></span> 未连接
+      </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 控制面板 -->
+      <section class="control-panel">
+        <div class="controls">
+          <button id="startBtn" class="btn btn-primary">
+            <span class="btn-icon">🎙️</span>
+            <span class="btn-text">开始录音</span>
+          </button>
+          
+          <button id="stopBtn" class="btn btn-danger" style="display: none;">
+            <span class="btn-icon">⏹️</span>
+            <span class="btn-text">停止录音</span>
+          </button>
+          
+          <button id="pauseBtn" class="btn btn-secondary" style="display: none;">
+            <span class="btn-icon">⏸️</span>
+            <span class="btn-text">暂停</span>
+          </button>
+          
+          <button id="clearBtn" class="btn btn-secondary" disabled>
+            <span class="btn-icon">🗑️</span>
+            <span class="btn-text">清空</span>
+          </button>
+          
+          <button id="exportBtn" class="btn btn-success" disabled>
+            <span class="btn-icon">💾</span>
+            <span class="btn-text">导出</span>
+          </button>
+        </div>
+
+        <!-- 状态显示 -->
+        <div class="status-container">
+          <div id="status" class="status idle">准备就绪</div>
+        </div>
+
+        <!-- 音量显示 -->
+        <div class="volume-container">
+          <div class="volume-label">🔊 音量:</div>
+          <div class="volume-bar-container">
+            <div id="volumeBar" class="volume-bar"></div>
+          </div>
+          <div id="volumeValue" class="volume-value">0%</div>
+        </div>
+      </section>
+
+      <!-- 转写结果显示区 -->
+      <section class="transcript-section">
+        <div class="section-header">
+          <h2>📝 转写结果</h2>
+          <div class="section-info">
+            <span class="badge-info">临时结果：实时显示</span>
+            <span class="badge-info">最终结果：高亮显示</span>
+          </div>
+        </div>
+        
+        <div id="transcript" class="transcript-container">
+          <div class="empty-state">
+            <div class="empty-icon">🎙️</div>
+            <div class="empty-text">开始录音后，识别的文字将显示在这里</div>
+            <div class="empty-hint">使用 Mock ASR 服务，返回随机文本用于演示</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 功能说明 -->
+      <section class="info-section">
+        <div class="info-card">
+          <h3>💡 使用说明</h3>
+          <ul>
+            <li>点击"开始录音"按钮，允许浏览器访问麦克风</li>
+            <li>开始说话，文字会实时显示在转写结果区域</li>
+            <li>临时结果用灰色显示，最终结果用蓝色高亮</li>
+            <li>可以暂停/继续录音，或点击停止结束录音</li>
+            <li>点击"导出"可以下载转写内容为文本文件</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>🎯 技术特点</h3>
+          <ul>
+            <li><strong>实时采集:</strong> 使用 MediaRecorder API 录制音频</li>
+            <li><strong>WebSocket:</strong> 实时双向通信传输音频数据</li>
+            <li><strong>Mock ASR:</strong> 模拟语音识别，返回随机文本</li>
+            <li><strong>音量可视化:</strong> 实时显示麦克风音量</li>
+            <li><strong>易于扩展:</strong> 后期可替换为真实的AI服务</li>
+          </ul>
+        </div>
+
+        <div class="info-card tech-card">
+          <h3>🔧 后期接入真实AI</h3>
+          <p>只需替换 <code>MockASRService</code> 为真实的语音识别服务：</p>
+          <ul>
+            <li>阿里云智能语音服务</li>
+            <li>讯飞开放平台</li>
+            <li>腾讯云语音识别</li>
+            <li>Azure Speech Services</li>
+          </ul>
+          <p class="tech-note">核心架构已完成，接入真实API只需修改服务端即可！</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      <p>音视频学习项目 - 实时语音转文字系统</p>
+      <p class="footer-tech">技术栈: WebSocket + MediaRecorder + Mock ASR</p>
+    </footer>
+  </div>
+
+  <!-- 引入JavaScript -->
+  <script src="AudioRecorder.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

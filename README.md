@@ -28,12 +28,19 @@ av-learning/
 │   ├── server/                  # HLS服务器
 │   ├── client/                  # 播放器
 │   └── README.md
-├── 05-vod-system/               # 视频点播系统 ⭐ NEW
+├── 05-vod-system/               # 视频点播系统 ⭐
 │   ├── server/                  # 上传、转码、存储服务
 │   ├── client/                  # 视频列表、播放器
 │   ├── media/                   # 媒体文件存储
 │   ├── 点播技术详解.md          # 点播技术深度解析 ⭐
 │   ├── 点播与直播对比.md        # VOD vs Live 全面对比 ⭐
+│   └── README.md
+├── 06-realtime-speech-to-text/  # 实时语音转文字 🆕 🔥
+│   ├── server/                  # WebSocket服务器 + Mock ASR
+│   ├── client/                  # 录音UI + 转写展示
+│   ├── docs/                    # 详细技术文档
+│   ├── 技术架构详解.md          # 架构设计深度剖析 ⭐
+│   ├── 接入真实ASR指南.md       # 对接阿里云/讯飞等服务 ⭐
 │   └── README.md
 └── README.md                     # 本文件
 ```
@@ -82,7 +89,7 @@ av-learning/
   - HTTP-FLV vs HLS 对比
   - LL-HLS 低延迟优化
 
-### 阶段4: 视频点播技术 🆕
+### 阶段4: 视频点播技术 ✅
 
 - [x] **视频点播系统** (`05-vod-system/`) ✅ 🔥
   - 视频上传与文件管理
@@ -92,16 +99,27 @@ av-learning/
   - 多格式播放支持
   - 完整的点播系统实现
   - 📚 包含点播技术详解和与直播的对比分析
-  
-### 阶段5: 混合架构与实时通信 📅
 
-- [ ] **WebRTC 直播** (`06-webrtc-live/`) 📅
+### 阶段5: 语音识别与实时通信 🆕 🔥
+
+- [x] **实时语音转文字** (`06-realtime-speech-to-text/`) ✅ 🎤
+  - MediaRecorder API 录音采集
+  - WebSocket 实时双向通信
+  - Web Audio API 音量可视化
+  - Mock ASR 服务（可替换为真实AI）
+  - 完整的转写UI（临时/最终结果区分）
+  - 📚 包含架构详解和对接真实ASR的指南
+  - 🔧 支持阿里云/讯飞/腾讯云/Azure
+  
+### 阶段6: 混合架构与实时通信 📅
+
+- [ ] **WebRTC 直播** (`07-webrtc-live/`) 📅
   - WebRTC 推拉流（<500ms）
   - SFU 架构实现
   - 连麦互动
   - 协议对比与选型
 
-### 阶段6: WebRTC 高级特性 📅
+### 阶段7: WebRTC 高级特性 📅
 
 - [ ] **弱网优化**
   - 带宽自适应
@@ -112,7 +130,7 @@ av-learning/
   - MediaRecorder API
   - 服务端录制
 
-### 阶段7: 生产级架构 📅
+### 阶段8: 生产级架构 📅
 
 - [ ] **SFU 架构**
   - mediasoup 集成
@@ -170,7 +188,7 @@ ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream
 # 访问 http://localhost:3000/player.html
 ```
 
-### 5. 视频点播系统 🆕
+### 5. 视频点播系统
 
 ```bash
 # 确保已安装 FFmpeg
@@ -181,8 +199,21 @@ cd 05-vod-system
 npm install
 npm start
 
-# 访问 http://localhost:3000
+# 访问 http://localhost:3003
 # 上传视频后系统自动转码为HLS格式
+```
+
+### 6. 实时语音转文字 🆕
+
+```bash
+# 启动服务器
+cd 06-realtime-speech-to-text
+npm install
+npm start
+
+# 访问 http://localhost:3000
+# 点击"开始录音"，允许麦克风权限
+# 说话后会实时显示识别结果（Mock模式）
 ```
 
 ## 📚 深度学习文档
@@ -260,6 +291,33 @@ npm start
 
 ---
 
+### 🎤 语音识别文档（06 项目）
+
+#### 1. [技术架构详解](./06-realtime-speech-to-text/docs/技术架构详解.md) ⭐⭐⭐
+**深入剖析实时语音转文字的技术架构**
+- 🏗️ 整体架构设计（前端 → WebSocket → ASR服务）
+- 🎤 AudioRecorder 音频采集详解（MediaRecorder API）
+- 📊 Web Audio API 音量可视化实现
+- 🔌 WebSocket 双向通信协议设计
+- 🤖 Mock ASR服务实现（模拟识别流程）
+- 🎨 UI组件架构和状态管理
+- 🔐 安全性考虑和错误处理
+- 📈 性能优化策略
+
+#### 2. [接入真实ASR指南](./06-realtime-speech-to-text/docs/接入真实ASR指南.md) ⭐⭐⭐
+**手把手教你接入真实的语音识别服务**
+- 📋 主流ASR服务商对比（阿里云、讯飞、腾讯云、Azure）
+- 🔧 阿里云智能语音接入详解（含完整代码）
+- 🎯 讯飞实时语音转写接入实战
+- ☁️ 腾讯云语音识别接入示例
+- 💰 成本估算和服务商选择建议
+- 🔄 通用适配层设计（轻松切换服务商）
+- ✅ 接入检查清单和调试技巧
+
+**适合**：从Mock服务过渡到生产环境，对接真实AI服务
+
+---
+
 ### 📅 学习建议
 
 **快速上手**（1-2 周）：
@@ -279,12 +337,19 @@ npm start
 3. ⚡ 研究 LL-HLS 低延迟优化
 4. 🎯 实现 05 点播系统
 
-**点播技术学习**（2-3 周）🆕：
+**点播技术学习**（2-3 周）：
 1. ✅ 跑通 05 项目（上传、转码、播放）
 2. 📖 阅读《点播技术详解》（理解点播核心技术）
 3. 📊 阅读《点播与直播对比》（理解选型依据）
 4. 🔧 实践 FFmpeg 转码命令
 5. 🚀 尝试对接 OSS 存储
+
+**语音识别学习**（1-2 周）🆕 🔥：
+1. ✅ 跑通 06 项目（录音、WebSocket、实时识别）
+2. 📖 阅读《技术架构详解》（理解前后端协同）
+3. 🔧 学习 MediaRecorder API 和 Web Audio API
+4. 🎯 阅读《接入真实ASR指南》（对接真实服务）
+5. 💡 尝试接入阿里云/讯飞语音识别
 
 ---
 
@@ -343,6 +408,20 @@ npm start
 - **播放器**: flv.js / hls.js
 - **协议**: RTMP (推流) + HTTP-FLV/HLS (拉流)
 - **编码**: H.264 (视频) + AAC (音频)
+
+### 点播系统
+- **服务端**: Node.js + Express + FFmpeg
+- **转码**: FFmpeg (HLS切片 + 多码率)
+- **存储**: 本地文件系统（可扩展至OSS）
+- **播放器**: hls.js
+- **前端**: 原生 JavaScript
+
+### 语音识别系统
+- **音频采集**: MediaRecorder API + Web Audio API
+- **实时通信**: WebSocket (ws库)
+- **ASR服务**: Mock服务（可替换为真实AI）
+- **支持平台**: 阿里云 / 讯飞 / 腾讯云 / Azure
+- **前端**: 原生 JavaScript
 
 ## 📝 学习笔记
 
