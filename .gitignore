@@ -32,3 +32,15 @@ build/
 Thumbs.db
 Desktop.ini
 
+# 测试视频文件（文件过大）
+test.mp4
+*.mp4
+
+# HLS 切片目录（临时生成的文件）
+04-hls-live-streaming/media/
+03-live-streaming-basic/recordings/
+
+# 其他媒体文件
+*.flv
+*.ts
+*.m3u8
