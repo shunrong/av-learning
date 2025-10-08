@@ -1,0 +1,26 @@
+{
+  "name": "live-stream-publisher",
+  "version": "1.0.0",
+  "description": "直播推流客户端 - 模拟真实业务场景",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test:push": "bash scripts/test-push.sh"
+  },
+  "keywords": [
+    "live-streaming",
+    "publisher",
+    "ffmpeg",
+    "rtmp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

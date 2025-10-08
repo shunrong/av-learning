@@ -1,0 +1,26 @@
+{
+  "name": "03-live-streaming-basic",
+  "version": "1.0.0",
+  "description": "Node.js 直播基础 - RTMP推流 + HTTP-FLV播放",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "push": "bash scripts/push-test.sh",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "live-streaming",
+    "rtmp",
+    "flv",
+    "node.js"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-media-server": "^2.6.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

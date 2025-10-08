@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播系统 - 首页</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .card {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 25px;
+      margin-bottom: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+    }
+
+    .card p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 25px;
+      font-weight: bold;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .code-block {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      line-height: 1.5;
+      margin: 15px 0;
+    }
+
+    .steps {
+      counter-reset: step;
+    }
+
+    .step {
+      position: relative;
+      padding-left: 50px;
+      margin-bottom: 25px;
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 35px;
+      height: 35px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .step h4 {
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .alert {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+
+    .alert strong {
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎥 Node.js 直播系统</h1>
+      <p>基于 RTMP + HTTP-FLV 的完整直播方案</p>
+    </div>
+
+    <div class="content">
+      <!-- 快速开始 -->
+      <div class="section">
+        <h2>🚀 快速开始</h2>
+        
+        <div class="steps">
+          <div class="step">
+            <h4>安装 FFmpeg（推流工具）</h4>
+            <div class="code-block">brew install ffmpeg</div>
+          </div>
+
+          <div class="step">
+            <h4>准备测试视频</h4>
+            <p>找一个任意 .mp4 视频文件，放到项目根目录，命名为 test.mp4</p>
+          </div>
+
+          <div class="step">
+            <h4>推流到服务器</h4>
+            <div class="code-block">ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream</div>
+            <p style="margin-top: 10px; color: #999; font-size: 0.9em;">
+              💡 看到 "Stream mapping" 和不断滚动的日志就说明推流成功了！
+            </p>
+          </div>
+
+          <div class="step">
+            <h4>打开播放器观看</h4>
+            <a href="/player.html" class="btn">▶️  打开播放器</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 核心概念 -->
+      <div class="section">
+        <h2>📖 核心概念</h2>
+
+        <div class="card">
+          <h3>推流地址</h3>
+          <div class="code-block">rtmp://localhost:1935/live/stream
+     ↓          ↓    ↓      ↓
+  服务器      端口  应用名  流名称</div>
+          <p><strong>live</strong>: 应用名（可自定义）<br>
+             <strong>stream</strong>: 流名称（可自定义，播放时要对应）</p>
+        </div>
+
+        <div class="card">
+          <h3>播放地址</h3>
+          <div class="code-block">HTTP-FLV: http://localhost:8080/live/stream.flv</div>
+          <p>浏览器通过 flv.js 库解析 FLV 格式的直播流</p>
+        </div>
+
+        <div class="card">
+          <h3>延迟说明</h3>
+          <p>HTTP-FLV 延迟通常在 <strong>3-5 秒</strong></p>
+          <p>对比你之前学的 WebRTC（&lt;500ms），这个延迟较高，但支持更多观众</p>
+        </div>
+      </div>
+
+      <!-- 实验建议 -->
+      <div class="section">
+        <h2>🧪 实验建议</h2>
+
+        <div class="card">
+          <h3>1. 多观众测试</h3>
+          <p>同时打开 3-5 个浏览器标签页播放，观察服务器日志中的观众连接</p>
+        </div>
+
+        <div class="card">
+          <h3>2. 体验延迟</h3>
+          <p>用摄像头推流，对着镜头挥手，观察播放器中的延迟</p>
+          <div class="code-block">ffmpeg -f avfoundation -i "0:0" -c:v libx264 -preset ultrafast -f flv rtmp://localhost:1935/live/webcam</div>
+        </div>
+
+        <div class="card">
+          <h3>3. 对比 WebRTC</h3>
+          <p>回顾你的 02-webrtc-mesh-conference 项目，对比两者的延迟和适用场景</p>
+        </div>
+      </div>
+
+      <!-- 常见问题 -->
+      <div class="section">
+        <h2>❓ 常见问题</h2>
+
+        <div class="alert">
+          <strong>Q: 推流后播放器黑屏？</strong><br>
+          A: 等待 3-5 秒缓冲，检查推流地址和播放地址的流名称是否一致
+        </div>
+
+        <div class="alert">
+          <strong>Q: FFmpeg 命令不存在？</strong><br>
+          A: 需要先安装：brew install ffmpeg
+        </div>
+
+        <div class="alert">
+          <strong>Q: 如何停止推流？</strong><br>
+          A: 在 FFmpeg 运行的终端按 Ctrl+C
+        </div>
+      </div>
+
+      <!-- 下一步 -->
+      <div class="section">
+        <h2>🎯 下一步学习</h2>
+        <div class="card">
+          <p>✅ 运行成功后，可以深入理解：</p>
+          <ul style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+            <li>RTMP 协议工作原理</li>
+            <li>FLV 格式结构</li>
+            <li>GOP 与延迟的关系</li>
+            <li>编码参数调优</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

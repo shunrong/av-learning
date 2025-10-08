@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播播放器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a1a;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #999;
+    }
+
+    .player-wrapper {
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+
+    #videoElement {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .controls {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ccc;
+      font-weight: 500;
+    }
+
+    .control-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #444;
+      background: #1a1a1a;
+      color: white;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      color: #999;
+    }
+
+    .status-value {
+      color: white;
+      font-weight: bold;
+    }
+
+    .status-value.online {
+      color: #28a745;
+    }
+
+    .status-value.offline {
+      color: #dc3545;
+    }
+
+    .info {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      line-height: 1.8;
+    }
+
+    .info h3 {
+      margin-bottom: 15px;
+      color: #667eea;
+    }
+
+    .info code {
+      background: #1a1a1a;
+      padding: 2px 8px;
+      border-radius: 3px;
+      color: #667eea;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .error {
+      background: #dc3545;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📺 直播播放器</h1>
+      <p>基于 flv.js 的 HTTP-FLV 播放器</p>
+    </div>
+
+    <!-- 播放器 -->
+    <div class="player-wrapper">
+      <video id="videoElement" controls>
+        你的浏览器不支持 video 标签
+      </video>
+    </div>
+
+    <!-- 错误提示 -->
+    <div class="error" id="errorDiv"></div>
+
+    <!-- 控制面板 -->
+    <div class="controls">
+      <div class="control-group">
+        <label>📡 播放地址 (HTTP-FLV)</label>
+        <input 
+          type="text" 
+          id="streamUrl" 
+          value="http://localhost:8080/live/stream.flv"
+          placeholder="http://localhost:8080/live/stream.flv"
+        >
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" id="playBtn">▶️ 开始播放</button>
+        <button class="btn btn-danger" id="stopBtn" disabled>⏹️ 停止播放</button>
+      </div>
+    </div>
+
+    <!-- 状态信息 -->
+    <div class="status">
+      <h3>📊 播放状态</h3>
+      <div class="status-item">
+        <span class="status-label">连接状态</span>
+        <span class="status-value offline" id="statusText">未连接</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">视频编码</span>
+        <span class="status-value" id="videoCodec">-</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">音频编码</span>
+        <span class="status-value" id="audioCodec">-</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">分辨率</span>
+        <span class="status-value" id="resolution">-</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">帧率</span>
+        <span class="status-value" id="fps">-</span>
+      </div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="info">
+      <h3>💡 使用说明</h3>
+      <p><strong>1. 确保服务器正在运行</strong></p>
+      <p style="margin-left: 20px; color: #999;">cd 03-live-streaming-basic && npm start</p>
+      
+      <p style="margin-top: 15px;"><strong>2. 推流到服务器</strong></p>
+      <p style="margin-left: 20px; color: #999;">
+        <code>ffmpeg -re -i test.mp4 -c copy -f flv rtmp://localhost:1935/live/stream</code>
+      </p>
+      
+      <p style="margin-top: 15px;"><strong>3. 点击"开始播放"</strong></p>
+      <p style="margin-left: 20px; color: #999;">
+        首次加载需要 3-5 秒缓冲时间
+      </p>
+
+      <p style="margin-top: 15px;"><strong>4. 多观众测试</strong></p>
+      <p style="margin-left: 20px; color: #999;">
+        打开多个标签页，观察所有观众看到的画面是否同步
+      </p>
+    </div>
+  </div>
+
+  <!-- flv.js 库 -->
+  <script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script>
+  
+  <script>
+    const videoElement = document.getElementById('videoElement');
+    const streamUrlInput = document.getElementById('streamUrl');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const errorDiv = document.getElementById('errorDiv');
+    
+    // 状态元素
+    const statusText = document.getElementById('statusText');
+    const videoCodecEl = document.getElementById('videoCodec');
+    const audioCodecEl = document.getElementById('audioCodec');
+    const resolutionEl = document.getElementById('resolution');
+    const fpsEl = document.getElementById('fps');
+
+    let flvPlayer = null;
+
+    // 检查浏览器支持
+    if (!flvjs.isSupported()) {
+      showError('你的浏览器不支持 flv.js，请使用 Chrome、Firefox 或 Edge');
+    }
+
+    // 开始播放
+    playBtn.addEventListener('click', () => {
+      const url = streamUrlInput.value.trim();
+      
+      if (!url) {
+        showError('请输入播放地址');
+        return;
+      }
+
+      startPlay(url);
+    });
+
+    // 停止播放
+    stopBtn.addEventListener('click', () => {
+      stopPlay();
+    });
+
+    // 启动播放
+    function startPlay(url) {
+      // 清理之前的播放器
+      if (flvPlayer) {
+        stopPlay();
+      }
+
+      try {
+        // 创建 flv.js 播放器
+        flvPlayer = flvjs.createPlayer({
+          type: 'flv',           // 类型：flv
+          url: url,              // 播放地址
+          isLive: true,          // 是否直播流
+          hasAudio: true,        // 是否有音频
+          hasVideo: true,        // 是否有视频
+          enableWorker: true,    // 启用 Worker（性能优化）
+          enableStashBuffer: false,  // 禁用缓冲（减少延迟）
+          stashInitialSize: 128,     // 初始缓冲大小（KB）
+        });
+
+        // 绑定到 video 元素
+        flvPlayer.attachMediaElement(videoElement);
+
+        // 事件监听
+        flvPlayer.on(flvjs.Events.LOADING_COMPLETE, () => {
+          console.log('加载完成');
+        });
+
+        flvPlayer.on(flvjs.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+          console.error('播放错误:', errorType, errorDetail, errorInfo);
+          showError(`播放错误: ${errorDetail}`);
+          updateStatus('离线', false);
+        });
+
+        flvPlayer.on(flvjs.Events.STATISTICS_INFO, (info) => {
+          // 更新统计信息
+          updateStatistics(info);
+        });
+
+        // 加载流
+        flvPlayer.load();
+        
+        // 开始播放
+        flvPlayer.play().then(() => {
+          console.log('播放开始');
+          updateStatus('播放中', true);
+          playBtn.disabled = true;
+          stopBtn.disabled = false;
+          hideError();
+        }).catch(err => {
+          console.error('播放失败:', err);
+          showError('播放失败，请检查推流是否开启');
+        });
+
+      } catch (err) {
+        console.error('创建播放器失败:', err);
+        showError('创建播放器失败: ' + err.message);
+      }
+    }
+
+    // 停止播放
+    function stopPlay() {
+      if (flvPlayer) {
+        flvPlayer.pause();
+        flvPlayer.unload();
+        flvPlayer.detachMediaElement();
+        flvPlayer.destroy();
+        flvPlayer = null;
+      }
+
+      updateStatus('未连接', false);
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      
+      // 清空统计信息
+      videoCodecEl.textContent = '-';
+      audioCodecEl.textContent = '-';
+      resolutionEl.textContent = '-';
+      fpsEl.textContent = '-';
+    }
+
+    // 更新状态
+    function updateStatus(text, isOnline) {
+      statusText.textContent = text;
+      statusText.className = `status-value ${isOnline ? 'online' : 'offline'}`;
+    }
+
+    // 更新统计信息
+    function updateStatistics(info) {
+      if (info.videoCodec) {
+        videoCodecEl.textContent = info.videoCodec || '-';
+      }
+      if (info.audioCodec) {
+        audioCodecEl.textContent = info.audioCodec || '-';
+      }
+      if (info.width && info.height) {
+        resolutionEl.textContent = `${info.width}x${info.height}`;
+      }
+      if (info.fps) {
+        fpsEl.textContent = Math.round(info.fps) + ' fps';
+      }
+    }
+
+    // 显示错误
+    function showError(message) {
+      errorDiv.textContent = '❌ ' + message;
+      errorDiv.style.display = 'block';
+    }
+
+    // 隐藏错误
+    function hideError() {
+      errorDiv.style.display = 'none';
+    }
+
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', () => {
+      stopPlay();
+    });
+
+    // 监听视频元数据加载
+    videoElement.addEventListener('loadedmetadata', () => {
+      console.log('视频元数据已加载');
+      resolutionEl.textContent = `${videoElement.videoWidth}x${videoElement.videoHeight}`;
+    });
+  </script>
+</body>
+</html>
