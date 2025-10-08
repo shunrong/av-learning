@@ -1,0 +1,25 @@
+{
+  "name": "04-hls-live-streaming",
+  "version": "1.0.0",
+  "description": "HLS 协议的完整直播方案，对比 HTTP-FLV，理解切片机制",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "hls",
+    "live-streaming",
+    "m3u8",
+    "ts"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-media-server": "2.6.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

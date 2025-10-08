@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP-FLV vs HLS 对比</title>
+  <script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 2em;
+    }
+    
+    .warning {
+      background: #feebc8;
+      border-left: 4px solid #dd6b20;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 1000px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .player-card {
+      background: #f7fafc;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    
+    .player-card h2 {
+      color: #2d3748;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+    
+    .badge.flv {
+      background: #fbd38d;
+      color: #7c2d12;
+    }
+    
+    .badge.hls {
+      background: #90cdf4;
+      color: #1a365d;
+    }
+    
+    .player-container {
+      position: relative;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    
+    video {
+      width: 100%;
+      display: block;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-play {
+      background: #48bb78;
+      color: white;
+    }
+    
+    .btn-play:hover {
+      background: #38a169;
+    }
+    
+    .btn-stop {
+      background: #fc8181;
+      color: white;
+    }
+    
+    .btn-stop:hover {
+      background: #f56565;
+    }
+    
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .metric-item {
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #667eea;
+    }
+    
+    .metric-label {
+      font-size: 0.85em;
+      color: #718096;
+      margin-bottom: 3px;
+    }
+    
+    .metric-value {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    
+    .analysis {
+      background: #f7fafc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 30px;
+    }
+    
+    .analysis h3 {
+      color: #2d3748;
+      margin-bottom: 15px;
+    }
+    
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+    }
+    
+    .analysis-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .analysis-card h4 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    
+    .winner {
+      display: inline-block;
+      background: #c6f6d5;
+      color: #22543d;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+    
+    .back-link {
+      display: inline-block;
+      color: #667eea;
+      text-decoration: none;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← 返回首页</a>
+    
+    <h1>📊 HTTP-FLV vs HLS 实时对比</h1>
+    
+    <div class="warning">
+      ⚠️ <strong>注意</strong>：此对比页面需要同时运行 03 和 04 项目的服务器<br>
+      • 03 项目（HTTP-FLV）：http://localhost:3001<br>
+      • 04 项目（HLS）：http://localhost:3000<br>
+      • 推流地址相同：rtmp://localhost:1935/live/stream
+    </div>
+    
+    <div class="comparison-grid">
+      <!-- HTTP-FLV 播放器 -->
+      <div class="player-card">
+        <h2>
+          HTTP-FLV
+          <span class="badge flv">03 项目</span>
+        </h2>
+        
+        <div class="player-container">
+          <video id="flv-video" controls muted></video>
+        </div>
+        
+        <div class="controls">
+          <button class="btn-play" onclick="playFLV()">▶ 播放</button>
+          <button class="btn-stop" onclick="stopFLV()">⏹ 停止</button>
+        </div>
+        
+        <div class="metrics">
+          <div class="metric-item">
+            <div class="metric-label">延迟(估算)</div>
+            <div class="metric-value" id="flv-latency">-</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">缓冲长度</div>
+            <div class="metric-value" id="flv-buffer">-</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">卡顿次数</div>
+            <div class="metric-value" id="flv-stalls">0</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">状态</div>
+            <div class="metric-value" id="flv-status">未播放</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- HLS 播放器 -->
+      <div class="player-card">
+        <h2>
+          HLS
+          <span class="badge hls">04 项目</span>
+        </h2>
+        
+        <div class="player-container">
+          <video id="hls-video" controls muted></video>
+        </div>
+        
+        <div class="controls">
+          <button class="btn-play" onclick="playHLS()">▶ 播放</button>
+          <button class="btn-stop" onclick="stopHLS()">⏹ 停止</button>
+        </div>
+        
+        <div class="metrics">
+          <div class="metric-item">
+            <div class="metric-label">延迟(估算)</div>
+            <div class="metric-value" id="hls-latency">-</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">缓冲长度</div>
+            <div class="metric-value" id="hls-buffer">-</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">卡顿次数</div>
+            <div class="metric-value" id="hls-stalls">0</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">状态</div>
+            <div class="metric-value" id="hls-status">未播放</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 分析总结 -->
+    <div class="analysis">
+      <h3>📈 对比分析</h3>
+      <div class="analysis-grid">
+        <div class="analysis-card">
+          <h4>延迟对比</h4>
+          <p><strong>HTTP-FLV</strong>: 通常 3-5 秒 <span class="winner">✓ 更低</span></p>
+          <p><strong>HLS</strong>: 通常 10-30 秒（标准），3-8 秒（优化后）</p>
+          <p style="margin-top:10px; color:#718096; font-size:0.9em;">
+            FLV 是长连接直接转发，HLS 需要切片和缓冲
+          </p>
+        </div>
+        
+        <div class="analysis-card">
+          <h4>兼容性对比</h4>
+          <p><strong>HTTP-FLV</strong>: 需要 flv.js（MSE），不支持 Safari</p>
+          <p><strong>HLS</strong>: 移动端原生支持 <span class="winner">✓ 更好</span></p>
+          <p style="margin-top:10px; color:#718096; font-size:0.9em;">
+            HLS 是 Apple 推出的标准，iOS/Safari 原生支持
+          </p>
+        </div>
+        
+        <div class="analysis-card">
+          <h4>CDN 友好度</h4>
+          <p><strong>HTTP-FLV</strong>: 长连接，缓存命中率低</p>
+          <p><strong>HLS</strong>: 切片可缓存 <span class="winner">✓ 更优</span></p>
+          <p style="margin-top:10px; color:#718096; font-size:0.9em;">
+            HLS 的 TS 切片是静态文件，CDN 可以高效缓存
+          </p>
+        </div>
+        
+        <div class="analysis-card">
+          <h4>适用场景</h4>
+          <p><strong>HTTP-FLV</strong>: PC 直播、低延迟互动 <span class="winner">✓</span></p>
+          <p><strong>HLS</strong>: 移动直播、大规模分发 <span class="winner">✓</span></p>
+          <p style="margin-top:10px; color:#718096; font-size:0.9em;">
+            各有优势，根据场景选择
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const flvVideo = document.getElementById('flv-video');
+    const hlsVideo = document.getElementById('hls-video');
+    
+    let flvPlayer = null;
+    let hlsPlayer = null;
+    let flvStalls = 0;
+    let hlsStalls = 0;
+    
+    // HTTP-FLV 播放
+    function playFLV() {
+      if (flvjs.isSupported()) {
+        if (!flvPlayer) {
+          flvPlayer = flvjs.createPlayer({
+            type: 'flv',
+            url: 'http://localhost:8080/live/stream.flv',  // 03 项目的地址
+            isLive: true,
+            hasAudio: true,
+            hasVideo: true
+          }, {
+            enableStashBuffer: false,
+            stashInitialSize: 128
+          });
+          
+          flvPlayer.attachMediaElement(flvVideo);
+          flvPlayer.load();
+        }
+        
+        flvVideo.play().then(() => {
+          document.getElementById('flv-status').textContent = '播放中';
+        }).catch(err => {
+          console.error('FLV 播放失败:', err);
+          document.getElementById('flv-status').textContent = '错误';
+        });
+      } else {
+        alert('浏览器不支持 FLV 播放');
+      }
+    }
+    
+    function stopFLV() {
+      if (flvPlayer) {
+        flvPlayer.pause();
+        flvPlayer.unload();
+        flvPlayer.detachMediaElement();
+        flvPlayer.destroy();
+        flvPlayer = null;
+      }
+      document.getElementById('flv-status').textContent = '已停止';
+    }
+    
+    // HLS 播放
+    function playHLS() {
+      if (Hls.isSupported()) {
+        if (!hlsPlayer) {
+          hlsPlayer = new Hls({
+            maxBufferLength: 10,
+            maxMaxBufferLength: 30,
+            liveSyncDurationCount: 1,
+            liveMaxLatencyDurationCount: 3
+          });
+          
+          hlsPlayer.loadSource('http://localhost:8080/live/stream/index.m3u8');
+          hlsPlayer.attachMedia(hlsVideo);
+        }
+        
+        hlsVideo.play().then(() => {
+          document.getElementById('hls-status').textContent = '播放中';
+        }).catch(err => {
+          console.error('HLS 播放失败:', err);
+          document.getElementById('hls-status').textContent = '错误';
+        });
+      } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari 原生支持
+        hlsVideo.src = 'http://localhost:8080/live/stream/index.m3u8';
+        hlsVideo.play();
+        document.getElementById('hls-status').textContent = '播放中';
+      } else {
+        alert('浏览器不支持 HLS 播放');
+      }
+    }
+    
+    function stopHLS() {
+      if (hlsPlayer) {
+        hlsPlayer.destroy();
+        hlsPlayer = null;
+      }
+      hlsVideo.pause();
+      document.getElementById('hls-status').textContent = '已停止';
+    }
+    
+    // 监听卡顿事件
+    flvVideo.addEventListener('waiting', () => {
+      flvStalls++;
+      document.getElementById('flv-stalls').textContent = flvStalls;
+    });
+    
+    hlsVideo.addEventListener('waiting', () => {
+      hlsStalls++;
+      document.getElementById('hls-stalls').textContent = hlsStalls;
+    });
+    
+    // 定时更新统计
+    setInterval(() => {
+      // FLV 统计
+      if (!flvVideo.paused && flvVideo.buffered.length > 0) {
+        const buffer = flvVideo.buffered.end(0) - flvVideo.currentTime;
+        document.getElementById('flv-buffer').textContent = buffer.toFixed(1) + 's';
+        document.getElementById('flv-latency').textContent = '~3-5s';
+      }
+      
+      // HLS 统计
+      if (!hlsVideo.paused && hlsVideo.buffered.length > 0) {
+        const buffer = hlsVideo.buffered.end(0) - hlsVideo.currentTime;
+        document.getElementById('hls-buffer').textContent = buffer.toFixed(1) + 's';
+        // HLS 延迟 ≈ 切片时长 × 缓冲切片数
+        const estimatedLatency = 6 * 2; // 6秒切片 × 2个缓冲
+        document.getElementById('hls-latency').textContent = `~${estimatedLatency}s`;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
+

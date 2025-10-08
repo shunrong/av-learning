@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HLS 播放器</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 2em;
+    }
+    
+    .player-container {
+      position: relative;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    video {
+      width: 100%;
+      display: block;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+    
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+    
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #f56565;
+    }
+    
+    .stats {
+      background: #f7fafc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .stats h3 {
+      color: #2d3748;
+      margin-bottom: 15px;
+    }
+    
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .stat-item {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .stat-label {
+      font-size: 0.9em;
+      color: #718096;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    
+    .info {
+      background: #bee3f8;
+      border-left: 4px solid #3182ce;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .warning {
+      background: #feebc8;
+      border-left: 4px solid #dd6b20;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .success {
+      background: #c6f6d5;
+      border-left: 4px solid #38a169;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .error {
+      background: #fed7d7;
+      border-left: 4px solid #e53e3e;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .log {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.85em;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    
+    .log-item {
+      margin: 5px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .log-time {
+      color: #90cdf4;
+      margin-right: 10px;
+    }
+    
+    .back-link {
+      display: inline-block;
+      color: #667eea;
+      text-decoration: none;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← 返回首页</a>
+    
+    <h1>📺 HLS 播放器</h1>
+    
+    <div id="status" class="info">
+      ℹ️ 等待播放... 请确保推流已开始
+    </div>
+    
+    <div class="player-container">
+      <video id="video" controls muted></video>
+    </div>
+    
+    <div class="controls">
+      <button class="btn-primary" onclick="play()">▶ 开始播放</button>
+      <button class="btn-secondary" onclick="pause()">⏸ 暂停</button>
+      <button class="btn-secondary" onclick="reload()">🔄 重新加载</button>
+      <button class="btn-secondary" onclick="toggleMute()">🔇 静音/取消静音</button>
+      <button class="btn-danger" onclick="stop()">⏹ 停止</button>
+    </div>
+    
+    <div class="stats">
+      <h3>📊 播放统计</h3>
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-label">当前状态</div>
+          <div class="stat-value" id="status-text">未播放</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">当前时间</div>
+          <div class="stat-value" id="current-time">0:00</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">缓冲长度</div>
+          <div class="stat-value" id="buffer-length">0s</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">加载的切片</div>
+          <div class="stat-value" id="fragments-loaded">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">卡顿次数</div>
+          <div class="stat-value" id="stall-count">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">错误次数</div>
+          <div class="stat-value" id="error-count">0</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <h3>📝 事件日志</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+    const logDiv = document.getElementById('log');
+    
+    // HLS 播放地址
+    const HLS_URL = 'http://localhost:8080/live/stream/index.m3u8';
+    
+    let hls = null;
+    let stallCount = 0;
+    let errorCount = 0;
+    let fragmentsLoaded = 0;
+    
+    // 添加日志
+    function addLog(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      logItem.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+      logDiv.insertBefore(logItem, logDiv.firstChild);
+      
+      // 保持最多 50 条日志
+      while (logDiv.children.length > 50) {
+        logDiv.removeChild(logDiv.lastChild);
+      }
+    }
+    
+    // 更新状态
+    function updateStatus(message, type = 'info') {
+      statusDiv.className = type;
+      statusDiv.innerHTML = getIcon(type) + ' ' + message;
+    }
+    
+    function getIcon(type) {
+      const icons = {
+        info: 'ℹ️',
+        success: '✅',
+        warning: '⚠️',
+        error: '❌'
+      };
+      return icons[type] || 'ℹ️';
+    }
+    
+    // 初始化 HLS
+    function initHLS() {
+      if (Hls.isSupported()) {
+        addLog('HLS.js 初始化中...');
+        
+        hls = new Hls({
+          // 低延迟配置
+          maxBufferLength: 10,           // 最大缓冲 10 秒
+          maxMaxBufferLength: 30,        // 极限缓冲 30 秒
+          liveSyncDurationCount: 1,      // 只缓冲 1 个切片（低延迟）
+          liveMaxLatencyDurationCount: 3,// 最大 3 个切片
+          enableWorker: true,            // 启用 Worker（性能）
+          
+          // 调试
+          debug: false
+        });
+        
+        hls.loadSource(HLS_URL);
+        hls.attachMedia(video);
+        
+        // HLS.js 事件监听
+        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+          addLog(`✅ m3u8 解析成功，共 ${data.levels.length} 个码率`);
+          updateStatus('m3u8 加载成功，准备播放', 'success');
+          document.getElementById('status-text').textContent = '就绪';
+        });
+        
+        hls.on(Hls.Events.MANIFEST_LOADING, () => {
+          addLog('📥 正在加载 m3u8...');
+          updateStatus('正在加载播放列表...', 'info');
+        });
+        
+        hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+          fragmentsLoaded++;
+          addLog(`📦 切片加载完成: ${data.frag.relurl} (${(data.frag.duration).toFixed(2)}s)`);
+          document.getElementById('fragments-loaded').textContent = fragmentsLoaded;
+        });
+        
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          errorCount++;
+          document.getElementById('error-count').textContent = errorCount;
+          
+          if (data.fatal) {
+            addLog(`❌ 致命错误: ${data.type} - ${data.details}`, 'error');
+            updateStatus(`致命错误: ${data.details}`, 'error');
+            
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                addLog('🔄 尝试恢复网络错误...');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                addLog('🔄 尝试恢复媒体错误...');
+                hls.recoverMediaError();
+                break;
+              default:
+                addLog('💥 无法恢复，销毁播放器');
+                hls.destroy();
+                break;
+            }
+          } else {
+            addLog(`⚠️ 非致命错误: ${data.details}`, 'warning');
+          }
+        });
+        
+        addLog('✅ HLS.js 初始化完成');
+        
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari 原生支持 HLS
+        addLog('📱 Safari 原生 HLS 播放');
+        video.src = HLS_URL;
+        updateStatus('使用 Safari 原生 HLS', 'success');
+        
+      } else {
+        updateStatus('❌ 浏览器不支持 HLS 播放', 'error');
+        addLog('❌ 浏览器不支持 HLS，请使用 Chrome/Firefox/Safari');
+      }
+    }
+    
+    // 播放控制
+    function play() {
+      if (!hls) {
+        initHLS();
+      }
+      video.play().then(() => {
+        addLog('▶ 开始播放');
+        updateStatus('正在播放...', 'success');
+        document.getElementById('status-text').textContent = '播放中';
+      }).catch(err => {
+        addLog(`❌ 播放失败: ${err.message}`, 'error');
+        updateStatus(`播放失败: ${err.message}`, 'error');
+      });
+    }
+    
+    function pause() {
+      video.pause();
+      addLog('⏸ 暂停播放');
+      document.getElementById('status-text').textContent = '暂停';
+    }
+    
+    function stop() {
+      video.pause();
+      video.currentTime = 0;
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      addLog('⏹ 停止播放');
+      updateStatus('已停止', 'info');
+      document.getElementById('status-text').textContent = '已停止';
+    }
+    
+    function reload() {
+      addLog('🔄 重新加载...');
+      if (hls) {
+        hls.destroy();
+      }
+      fragmentsLoaded = 0;
+      initHLS();
+      setTimeout(() => play(), 500);
+    }
+    
+    function toggleMute() {
+      video.muted = !video.muted;
+      addLog(video.muted ? '🔇 已静音' : '🔊 取消静音');
+    }
+    
+    // 视频事件监听
+    video.addEventListener('loadstart', () => {
+      addLog('🔄 开始加载视频');
+    });
+    
+    video.addEventListener('loadedmetadata', () => {
+      addLog(`📹 元数据加载完成 (${video.videoWidth}x${video.videoHeight})`);
+    });
+    
+    video.addEventListener('playing', () => {
+      addLog('▶ 视频开始播放');
+      document.getElementById('status-text').textContent = '播放中';
+    });
+    
+    video.addEventListener('waiting', () => {
+      stallCount++;
+      addLog('⏳ 缓冲中...');
+      document.getElementById('stall-count').textContent = stallCount;
+    });
+    
+    video.addEventListener('stalled', () => {
+      addLog('⚠️ 播放卡顿', 'warning');
+    });
+    
+    video.addEventListener('ended', () => {
+      addLog('🏁 播放结束');
+    });
+    
+    video.addEventListener('error', (e) => {
+      addLog(`❌ 视频错误: ${e.message}`, 'error');
+      updateStatus(`视频错误: ${e.message}`, 'error');
+    });
+    
+    // 定时更新统计信息
+    setInterval(() => {
+      if (!video.paused) {
+        // 当前时间
+        const currentTime = video.currentTime;
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = Math.floor(currentTime % 60);
+        document.getElementById('current-time').textContent = 
+          `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // 缓冲长度
+        if (video.buffered.length > 0) {
+          const buffered = video.buffered.end(0) - currentTime;
+          document.getElementById('buffer-length').textContent = 
+            buffered.toFixed(1) + 's';
+        }
+      }
+    }, 1000);
+    
+    // 页面加载完成后初始化
+    window.addEventListener('load', () => {
+      addLog('📄 页面加载完成');
+      updateStatus('准备就绪，点击"开始播放"按钮', 'info');
+    });
+  </script>
+</body>
+</html>
+
